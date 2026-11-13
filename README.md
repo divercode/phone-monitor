@@ -5,7 +5,7 @@
 
 ## 当前版本
 
-- **v0.6.0（versionCode 6）**：移除自研内置 LUT；内置通道保留给「官方 LUT」（默认不含版权文件）
+- **v0.7.0（versionCode 7）**：内置 8 个索尼官方 Look LUT（只读、不可删除）
 - **发版规则：每次更新必须同时递增 `versionCode` 与 `versionName`**，见
   [docs/RELEASING.md](docs/RELEASING.md)；App 内「设置」底部可看到当前版本
 - 直接下载最新包：GitHub Release `apk-latest`（公开，无需登录）
@@ -16,7 +16,7 @@
 |---|---|
 | UVC 实时预览 | 采集卡画面经 SurfaceTexture 直连 GL 外部 OES 纹理，零 CPU 拷贝 |
 | 3D LUT | 导入 `.cube`，GPU 双线性+切片混合（三线性）实时套用 |
-| 内置 LUT | 内置通道（`assets/luts`，只读、**不可删除**）；默认不放第三方版权文件 |
+| 内置 LUT | **8 个索尼官方 Look LUT**（只读、**不可删除**）；用户 LUT 可导入、可删除 |
 | 峰值对焦 | 基于梯度幅值的索边染色，阈值可调 |
 | 斑马纹 | 按显示亮度阈值叠加斜纹，阈值可调（默认 85%） |
 | 构图网格 | 三分线 + 中心十字，可叠加 10% 安全框 |
@@ -140,16 +140,29 @@ PTP 的私有扩展）：相机保持完整拍摄状态，实时取景画面**�
 
 ## LUT 管理
 
-- **内置 LUT 通道**：`app/src/main/assets/luts/` 里的 `.cube` 会被识别为内置（只读、删除列表不出现、
-  代码层拒绝删除）。**默认仓库里不放任何第三方版权 LUT**。
-- **用户 LUT**：LUT 菜单 →「导入新文件」，复制到应用私有目录，可随时删除。
-- **获取索尼官方 LUT**：LUT 菜单第一项「从索尼官网获取 LUT…」会打开索尼官方 LUT 页面，
-  你自己下载 `.cube` 后：
-  - 直接「导入」→ 作为用户 LUT（可删除）
-  - 或放进 `app/src/main/assets/luts/` 重新构建 → 作为**内置 LUT（不可删除）**
-- **为什么不直接打包索尼 LUT**：索尼官方 LUT 文件是索尼版权素材，公开仓库/公开 Release
-  直接再分发有授权风险。若你已获得授权或仅自用（把仓库设为私有），把官方 `.cube` 放进
-  `assets/luts/` 即可，代码不需要改。
+### 内置：8 个索尼官方 Look LUT（只读、不可删除）
+
+| 文件名 | 显示名 | 输入 |
+|---|---|---|
+| `SL3SG3CtoWarm_709` | 索尼·暖调 709 | S-Log3 / S-Gamut3.Cine |
+| `SL3SG3CtoCool_709` | 索尼·冷调 709 | S-Log3 / S-Gamut3.Cine |
+| `SL3SG3CtoTealOR_709` | 索尼·青橙 709 | S-Log3 / S-Gamut3.Cine |
+| `SL3SG3CtoVintage_709` | 索尼·复古 709 | S-Log3 / S-Gamut3.Cine |
+| `SL3SG3toWarm_709` | 索尼·暖调 709 | S-Log3 / S-Gamut3 |
+| `SL3SG3toCool_709` | 索尼·冷调 709 | S-Log3 / S-Gamut3 |
+| `SL3SG3toTealOR_709` | 索尼·青橙 709 | S-Log3 / S-Gamut3 |
+| `SL3SG3toVintage_709` | 索尼·复古 709 | S-Log3 / S-Gamut3 |
+
+- 打包位置：`app/src/main/assets/luts/`；LUT 菜单里标注「内置」，删除列表不会出现，
+  代码层 `deleteUserLut()` 直接拒绝
+- **版权说明**：这些是 Sony 官方 LUT，版权归 Sony 所有，不受本项目 MIT 许可覆盖
+  （见 `assets/luts/SOURCE.txt`）。由项目所有者提供并纳入内置；**对外公开分发前请自行确认
+  已获得 Sony 再分发授权，或将仓库与 Release 设为私有**
+
+### 用户 LUT
+
+LUT 菜单 →「导入新文件」，复制到应用私有目录，可随时通过「删除…」删除；
+删除正在使用的 LUT 会自动关闭 LUT。
 
 ## 延迟优化（HDMI 链路）
 

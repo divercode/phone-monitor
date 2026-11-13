@@ -18,3 +18,5 @@ captures/
 .tools/verify-clone/
 .tools/ci-logs-view/
 .tools/ref/
+# 用户提供的原始 LUT 素材（已复制进 app/src/main/assets/luts，不重复入库）
+/lut/

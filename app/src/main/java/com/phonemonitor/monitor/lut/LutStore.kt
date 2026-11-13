@@ -33,6 +33,9 @@ class LutStore(private val context: Context) {
 
     fun isBuiltIn(name: String): Boolean = name in builtInNames()
 
+    /** 内置 LUT 的友好显示名（保留原始文件名，避免改动索尼命名） */
+    fun displayName(name: String): String = PRETTY_NAMES[name] ?: name
+
     /** 读取 LUT；不存在或解析失败返回 null */
     fun load(name: String): Lut3D? = runCatching {
         val stream = if (isBuiltIn(name)) {
@@ -99,5 +102,17 @@ class LutStore(private val context: Context) {
         private const val PREFS_NAME = "monitor_settings"
         private const val KEY_SELECTED_LUT = "selected_lut"
         private const val ASSET_DIR = "luts"
+
+        /** 索尼官方 Look LUT 的显示名 */
+        private val PRETTY_NAMES = mapOf(
+            "SL3SG3CtoWarm_709" to "索尼·暖调 709（S-Log3/S-Gamut3.Cine）",
+            "SL3SG3CtoCool_709" to "索尼·冷调 709（S-Log3/S-Gamut3.Cine）",
+            "SL3SG3CtoTealOR_709" to "索尼·青橙 709（S-Log3/S-Gamut3.Cine）",
+            "SL3SG3CtoVintage_709" to "索尼·复古 709（S-Log3/S-Gamut3.Cine）",
+            "SL3SG3toWarm_709" to "索尼·暖调 709（S-Log3/S-Gamut3）",
+            "SL3SG3toCool_709" to "索尼·冷调 709（S-Log3/S-Gamut3）",
+            "SL3SG3toTealOR_709" to "索尼·青橙 709（S-Log3/S-Gamut3）",
+            "SL3SG3toVintage_709" to "索尼·复古 709（S-Log3/S-Gamut3）",
+        )
     }
 }

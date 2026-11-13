@@ -32,7 +32,11 @@ EXCLUDE_FILES = {".DS_Store"}
 def collect_files():
     result = []
     for base, dirs, names in os.walk(ROOT):
-        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+        # 根目录的 lut/ 是用户提供的原始素材（已复制进 assets，不重复入库）
+        dirs[:] = [
+            d for d in dirs
+            if d not in EXCLUDE_DIRS and not (base == ROOT and d == "lut")
+        ]
         for n in names:
             if n in EXCLUDE_FILES:
                 continue

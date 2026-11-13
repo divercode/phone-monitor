@@ -1,7 +1,6 @@
 # samples · 示例 LUT
 
-> App **不再内置自研外观 LUT**（v0.6.0 起移除）。本目录的文件仅用于对照验证或导入试用；
-> 索尼官方 LUT 请从官方页面下载后导入，或放进 `app/src/main/assets/luts/` 作为内置。
+> App 已内置 8 个索尼官方 Look LUT（只读不可删）；本目录的文件仅用于管线对照验证或导入试用。
 
 两个 `.cube` 文件，用于在真机上验证 LUT 管线（由 `.tools/gen_sample_luts.py` 生成）：
 

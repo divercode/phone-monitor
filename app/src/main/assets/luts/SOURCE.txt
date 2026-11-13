@@ -1,0 +1,13 @@
+内置 LUT 来源说明
+================
+
+本目录下的 .cube 文件为 SONY 官方 Look LUT：
+
+  SL3SG3Cto*_709.cube  = S-Log3 / S-Gamut3.Cine → 709 色彩空间下的 Cool / Teal-Orange / Vintage / Warm 外观
+  SL3SG3to*_709.cube   = S-Log3 / S-Gamut3    → 709 色彩空间下的 Cool / Teal-Orange / Vintage / Warm 外观
+
+版权归 Sony 所有。这些文件由项目所有者提供并纳入 App 内置（只读、界面不可删除）。
+它们不受本项目 MIT 许可证覆盖。
+
+注意：若本项目/APK 对外公开分发，请自行确认已获得 Sony 的再分发授权，或将仓库与
+Release 设为私有。详见项目根目录 README 的「LUT 管理」一节。

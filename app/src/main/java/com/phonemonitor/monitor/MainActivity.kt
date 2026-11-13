@@ -413,7 +413,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         val items = mutableListOf("从索尼官网获取 LUT…", "不使用 LUT")
-        items.addAll(entries.map { if (it.builtIn) "${it.name}（内置）" else it.name })
+        items.addAll(
+            entries.map {
+                if (it.builtIn) "${lutStore.displayName(it.name)}（内置）" else it.name
+            },
+        )
         val selected = lutStore.selectedName
         val checked = if (settings.lutEnabled && selected != null) {
             entries.indexOfFirst { it.name == selected }.let { if (it >= 0) it + 2 else 1 }
@@ -437,7 +441,8 @@ class MainActivity : AppCompatActivity() {
                             lutStore.selectedName = entry.name
                             currentLut = lut
                             settings.lutEnabled = true
-                            toast("已套用：${entry.name}${if (entry.builtIn) "（内置）" else ""}")
+                            val shown = lutStore.displayName(entry.name)
+                            toast("已套用：$shown${if (entry.builtIn) "（内置）" else ""}")
                         } else {
                             toast("LUT 解析失败")
                         }
