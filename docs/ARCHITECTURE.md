@@ -163,4 +163,19 @@ handler 队列里，先于 `addSurface`/`startPreview` 执行）。
 另：Activity 销毁后 USB/GL 线程仍可能有迟到回调，统一用 `destroyed` 标志在
 `runOnUiThread` 里挡掉，避免触碰已销毁的视图。
 
+## 10. 三种视频传输方式的区别（重要）
+
+| 方式 | 协议 | 能否看到 S-Log3 | 延迟 | 代价 |
+|---|---|---|---|---|
+| HDMI + 采集卡 | HDMI → UVC | ✅（相机 HDMI 输出带 PP） | 60~110ms | 需要采集卡 + HDMI 线 |
+| Type-C UVC（USB Streaming） | UVC | ❌ 官方文档：串流期间 Picture Profile 禁用 | 较低 | 一根线，但无 Log |
+| Type-C / Wi-Fi PTP（PC Remote） | Sony PTP 私有扩展 | ✅（实时取景带 PP） | 较高（JPEG 取景流） | 需要自己实现 PTP；取景分辨率由相机决定 |
+
+Monitor+ / 索尼 Monitor & Control 走的是第三条（PTP）。索尼官方
+[Camera Remote SDK](https://support.d-imaging.sony.co.jp/app/sdk/en/index.html) 支持 ILCE-7M4，
+但 **Supported OS 不含 Android**，所以安卓端只能实现 PTP 协议本身
+（[Camera Remote Command](https://support.d-imaging.sony.co.jp/app/cameraremotecommand/en/index.html)
+是公开的 PTP 私有扩展参考；开源参考实现如 [tethercam](https://github.com/nredd/tethercam)）。
+本项目当前实现的是前两条；第三条是 M4 里程碑。
+
 
