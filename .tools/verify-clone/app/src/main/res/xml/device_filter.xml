@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-  只匹配 USB Video Class（class = 14）设备：相机 HDMI 采集卡插上时自动拉起本 App，
-  插键盘/存储等其他 USB 设备不会弹本 App。
--->
-<resources>
-    <usb-device class="14" />
-</resources>

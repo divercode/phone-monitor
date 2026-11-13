@@ -42,6 +42,13 @@ class UvcCameraSource(
     @Volatile
     private var callback: FrameSource.Callback? = null
 
+    /** 当前实际生效的预览尺寸（打开相机后协商得到） */
+    @Volatile
+    private var previewWidth = preferredWidth
+
+    @Volatile
+    private var previewHeight = preferredHeight
+
     private val stateCallback = object : ICameraHelper.StateCallback {
 
         override fun onAttach(device: UsbDevice) {

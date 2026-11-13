@@ -15,3 +15,5 @@ captures/
 .tools/keys/
 .tools/known_hosts
 .tools/known_hosts.old
+.tools/verify-clone/
+.tools/ci-logs-view/

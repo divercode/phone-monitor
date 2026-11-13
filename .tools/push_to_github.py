@@ -21,7 +21,11 @@ from dulwich import porcelain  # noqa: E402
 from dulwich.repo import Repo  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
-EXCLUDE_DIRS = {".git", "build", ".gradle", ".idea", "pylibs", "tmp", "keys"}
+EXCLUDE_DIRS = {
+    ".git", "build", ".gradle", ".idea",
+    "pylibs", "tmp", "keys",
+    "verify-clone", "ci-logs-view", "ci-logs",
+}
 EXCLUDE_FILES = {".DS_Store"}
 
 
@@ -55,6 +59,16 @@ def main():
 
     files = collect_files()
     print(f"待提交文件 {len(files)} 个")
+
+    # 先把磁盘上已不存在的文件从索引里移除（dulwich 的 add 不会处理删除）
+    index = repo.open_index()
+    missing = [p for p in list(index) if not os.path.exists(os.path.join(ROOT, p.decode()))]
+    if missing:
+        for p in missing:
+            del index[p]
+        index.write()
+        print(f"已从索引移除 {len(missing)} 个已删除文件")
+
     porcelain.add(repo, paths=files)
 
     author = args.author.encode()
