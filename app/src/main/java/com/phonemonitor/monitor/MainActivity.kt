@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun createSource(): FrameSource =
         if (settings.useSystemCamera) {
-            SystemCameraSource(applicationContext)
+            SystemCameraSource(applicationContext, settings.cameraFullFrame)
         } else {
             UvcCameraSource(this)
         }
@@ -666,6 +666,11 @@ class MainActivity : AppCompatActivity() {
                 settings.useSystemCamera = checked
                 rebuildSource()
             }
+        }
+
+        addSwitch(container, R.string.switch_camera_full_frame, settings.cameraFullFrame) {
+            settings.cameraFullFrame = it
+            if (settings.useSystemCamera) rebuildSource()
         }
 
         container.addView(sectionTitle(R.string.section_params))

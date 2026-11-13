@@ -24,6 +24,7 @@
     <string name="switch_histogram">显示直方图</string>
     <string name="switch_low_latency">低延迟模式（关闭垂直同步，可能撕裂）</string>
     <string name="switch_system_camera">输入源：使用系统相机（测试用）</string>
+    <string name="switch_camera_full_frame">系统相机：全画幅 4:3（避免上下裁剪）</string>
     <string name="slider_peak_threshold">峰值阈值（越小越灵敏）</string>
     <string name="slider_zebra_threshold">斑马阈值 (IRE %)</string>
     <string name="slider_desqueeze">变形宽银幕拉伸</string>

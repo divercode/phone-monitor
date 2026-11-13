@@ -66,6 +66,11 @@ class MonitorSettings(context: Context) {
         get() = prefs.getBoolean(KEY_USE_SYSTEM_CAMERA, false)
         set(value) = prefs.edit().putBoolean(KEY_USE_SYSTEM_CAMERA, value).apply()
 
+    /** 系统相机是否用全画幅（4:3，接近传感器比例，避免上下裁剪） */
+    var cameraFullFrame: Boolean
+        get() = prefs.getBoolean(KEY_CAMERA_FULL_FRAME, true)
+        set(value) = prefs.edit().putBoolean(KEY_CAMERA_FULL_FRAME, value).apply()
+
     companion object {
         private const val PREFS_NAME = "monitor_settings"
         private const val KEY_LUT_ENABLED = "lut_enabled"
@@ -79,5 +84,6 @@ class MonitorSettings(context: Context) {
         private const val KEY_HISTOGRAM = "histogram"
         private const val KEY_LOW_LATENCY = "low_latency"
         private const val KEY_USE_SYSTEM_CAMERA = "use_system_camera"
+        private const val KEY_CAMERA_FULL_FRAME = "camera_full_frame"
     }
 }

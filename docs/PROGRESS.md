@@ -1,6 +1,6 @@
 # 开发进度快照（交接给另一台开发机 / DSH）
 
-> 更新时间：2026-11-13 · 版本 **v0.8.2**（versionCode 11）
+> 更新时间：2026-11-13 · 版本 **v0.8.3**（versionCode 12）
 > 仓库：<https://github.com/divercode/phone-monitor>（public，默认分支 `main`）
 > 最近 CI：构建 + 单测通过，APK 自动发布到 Release `apk-latest`
 

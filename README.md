@@ -5,7 +5,7 @@
 
 ## 当前版本
 
-- **v0.8.2（versionCode 11）**：CI 固定 debug 签名密钥，修复 APK "签名不同无法覆盖安装"
+- **v0.8.3（versionCode 12）**：系统相机默认全画幅 4:3（修复上下裁剪）+ HUD 显示旋转后分辨率；`sensorLandscape` 自动横屏方向（永不竖屏）
 - **发版规则：每次更新必须同时递增 `versionCode` 与 `versionName`**，见
   [docs/RELEASING.md](docs/RELEASING.md)；App 内「设置」底部可看到当前版本
 - 直接下载最新包：GitHub Release `apk-latest`（公开，无需登录）

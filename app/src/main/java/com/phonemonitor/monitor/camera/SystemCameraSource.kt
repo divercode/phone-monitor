@@ -22,7 +22,11 @@ import com.phonemonitor.monitor.uvc.FrameSource
  * 没有 HDMI 采集卡时，用手机自带的摄像头当信号源，验证 LUT/峰值/斑马/网格/直方图等
  * 全部渲染管线。与 UVC 采集卡共用同一个 SurfaceTexture 输入路径，渲染层无需区分来源。
  */
-class SystemCameraSource(private val context: Context) : FrameSource {
+class SystemCameraSource(
+    private val context: Context,
+    /** true = 全画幅（按传感器比例，通常 4:3，避免上下裁剪）；false = 16:9 裁剪 */
+    private val fullFrame: Boolean = true,
+) : FrameSource {
 
     private val cameraManager =
         context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -88,7 +92,13 @@ class SystemCameraSource(private val context: Context) : FrameSource {
             val chars = cameraManager.getCameraCharacteristics(id)
             quarterTurns = (((chars.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 90) / 90) % 4)
             val map = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            previewSize = chooseSize(map?.getOutputSizes(SurfaceTexture::class.java))
+            val active = chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+            val targetAspect = if (fullFrame && active != null) {
+                active.width().toFloat() / active.height().toFloat()
+            } else {
+                16f / 9f
+            }
+            previewSize = chooseSize(map?.getOutputSizes(SurfaceTexture::class.java), targetAspect)
             callback?.onOrientation(quarterTurns)
             // Camera2 预览到 SurfaceTexture 后画面左右镜像，需要渲染层翻转一次
             callback?.onMirror(true)
@@ -138,9 +148,12 @@ class SystemCameraSource(private val context: Context) : FrameSource {
                         runCatching {
                             sess.setRepeatingRequest(request.build(), null, handler)
                         }.onSuccess {
+                            // 按旋转后的方向显示分辨率（竖幅时宽高互换）
+                            val dw = if (quarterTurns % 2 == 1) previewSize.height else previewSize.width
+                            val dh = if (quarterTurns % 2 == 1) previewSize.width else previewSize.height
                             callback?.onStatus(
                                 FrameSource.Status.CONNECTED,
-                                "系统相机 ${previewSize.width}x${previewSize.height}",
+                                "系统相机 ${dw}x${dh}",
                             )
                         }.onFailure {
                             callback?.onStatus(
@@ -185,16 +198,22 @@ class SystemCameraSource(private val context: Context) : FrameSource {
         return back ?: ids.first()
     }
 
-    private fun chooseSize(sizes: Array<Size>?): Size {
+    /**
+     * 选预览尺寸：优先宽高比最接近 [targetAspect]（全画幅模式 = 传感器比例），
+     * 同比例下取面积最大的；避免 16:9 流把 4:3 传感器上下裁掉。
+     */
+    private fun chooseSize(sizes: Array<Size>?, targetAspect: Float): Size {
         if (sizes.isNullOrEmpty()) return Size(1280, 720)
-        for ((w, h) in PREFERRED_SIZES) {
-            sizes.firstOrNull { it.width == w && it.height == h }?.let { return it }
-        }
-        return sizes.maxByOrNull { it.width * it.height } ?: Size(1280, 720)
+        val candidates = sizes.filter { it.width <= 1920 && it.height <= 1920 }
+        if (candidates.isEmpty()) return sizes[0]
+        return candidates.minWithOrNull(
+            compareBy<Size> {
+                kotlin.math.abs(it.width.toFloat() / it.height - targetAspect)
+            }.thenByDescending { it.width * it.height },
+        ) ?: sizes[0]
     }
 
     companion object {
         private const val TAG = "SystemCameraSource"
-        private val PREFERRED_SIZES = listOf(1920 to 1080, 1280 to 720, 640 to 480)
     }
 }
