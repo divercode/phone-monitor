@@ -72,6 +72,28 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
+      # 把 APK 发到公开 Release：无需登录 GitHub 即可直接下载
+      - name: Publish APK to GitHub Release
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -n1)
+          echo "APK=$APK"
+          STAMP=$(date -u +%Y%m%d-%H%M%S)
+          if gh release view apk-latest >/dev/null 2>&1; then
+            gh release upload apk-latest "$APK" --clobber
+            gh release edit apk-latest \
+              --title "PhoneMonitor 最新测试包" \
+              --notes "CI 自动构建（$STAMP，commit ${GITHUB_SHA:0:8}）。debug 签名，安装需允许未知来源。" 
+          else
+            gh release create apk-latest "$APK" \
+              --title "PhoneMonitor 最新测试包" \
+              --notes "CI 自动构建（$STAMP，commit ${GITHUB_SHA:0:8}）。debug 签名，安装需允许未知来源。"
+          fi
+
       # 失败时把日志推到 ci-logs 分支（公开仓库可匿名拉取，便于排查）
       - name: Publish failure logs
         if: failure()
