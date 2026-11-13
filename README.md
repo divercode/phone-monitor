@@ -124,8 +124,10 @@ PTP 的私有扩展）：相机保持完整拍摄状态，实时取景画面**�
 - 开源对照实现 [nredd/tethercam](https://github.com/nredd/tethercam)：USB-C + PTP + 相机
   「PC Remote」模式取流；实时取景分辨率由相机决定（a7 III 为 1024x680 @ ~15fps）
 
-**状态：尚未实现（M4）**。实现要点：Android USB Host → PTP 会话 → 索尼 SDIO 扩展握手
-→ 拉取实时取景 JPEG → 解码上传为 GL 2D 纹理（现有 LUT/叠加全部复用）。
+**状态：尚未实现（M4）**。**可行性已逐条验证**（协议常量、Android API、风险对策）：
+见 [docs/PTP-FEASIBILITY.md](docs/PTP-FEASIBILITY.md)。实现要点：Android USB Host → PTP 会话
+→ 索尼 SDIO 握手（0x9201/0x9202）→ 等 0xD221 就绪 → `GET_OBJECT(0xFFFFC002)` 取 JPEG
+→ 解码上传为 GL 2D 纹理（现有 LUT/叠加全部复用）。
 代价：延迟高于 HDMI，取景分辨率/帧率由相机决定；收益：一根 Type-C 线看 S-Log3。
 
 ## 延迟优化（HDMI 链路）

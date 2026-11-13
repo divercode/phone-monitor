@@ -12,9 +12,14 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 MD_FILES = []
+SKIP_DIRS = {
+    ".git", "build", ".gradle", ".idea",
+    "pylibs", "tmp", "keys", "ref",
+    "verify-clone", "ci-logs-view", "ci-logs",
+}
 for base, dirs, names in os.walk(ROOT):
-    # 跳过构建产物与隐藏的版本库目录
-    dirs[:] = [d for d in dirs if d not in (".git", "build", ".gradle", ".idea")]
+    # 跳过构建产物、第三方参考代码与本机临时目录
+    dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
     for n in names:
         if n.endswith(".md"):
             MD_FILES.append(os.path.join(base, n))

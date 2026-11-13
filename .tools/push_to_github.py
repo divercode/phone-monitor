@@ -24,7 +24,7 @@ ROOT = os.path.dirname(HERE)
 EXCLUDE_DIRS = {
     ".git", "build", ".gradle", ".idea",
     "pylibs", "tmp", "keys",
-    "verify-clone", "ci-logs-view", "ci-logs",
+    "verify-clone", "ci-logs-view", "ci-logs", "ref",
 }
 EXCLUDE_FILES = {".DS_Store"}
 
