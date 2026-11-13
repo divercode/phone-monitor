@@ -5,10 +5,18 @@
 
 ## 当前版本
 
-- **v0.7.0（versionCode 7）**：内置 8 个索尼官方 Look LUT（只读、不可删除）
+- **v0.7.1（versionCode 8）**：新增开发交接文档（进度快照 / 开发文档 / AGENTS 约定）
 - **发版规则：每次更新必须同时递增 `versionCode` 与 `versionName`**，见
   [docs/RELEASING.md](docs/RELEASING.md)；App 内「设置」底部可看到当前版本
 - 直接下载最新包：GitHub Release `apk-latest`（公开，无需登录）
+
+## 开发 / 交接文档
+
+- [AGENTS.md](AGENTS.md)：给 AI / DSH 助手的硬性规则（版本号、自检、CI、版权）
+- [docs/PROGRESS.md](docs/PROGRESS.md)：当前进度快照（已完成 / 验证状态 / 待办）
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)：环境、构建、CI 发版、代码地图、关键坑、M4 路线
+- [docs/PTP-FEASIBILITY.md](docs/PTP-FEASIBILITY.md)：Type-C PTP 方案可行性（协议常量）
+
 
 ## 已实现功能（MVP）
 

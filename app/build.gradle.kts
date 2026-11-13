@@ -12,8 +12,8 @@ android {
         minSdk = 24
         targetSdk = 34
         // 发版规则：每次更新必须同时递增这两个值（见 docs/RELEASING.md）
-        versionCode = 7
-        versionName = "0.7.0"
+        versionCode = 8
+        versionName = "0.7.1"
     }
 
     buildFeatures {

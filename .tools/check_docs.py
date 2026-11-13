@@ -56,6 +56,9 @@ def check_inline_path(md_path, raw):
         return
     if "*" in p or " " in p:  # 通配或说明性文字
         return
+    # 构建产物（如 app/build/...、*.apk）不要求在仓库中存在
+    if "build/" in p or p.endswith(".apk") or p.endswith(".aab"):
+        return
     if not os.path.exists(os.path.join(ROOT, p)):
         problems.append(f"{rel(md_path)}: 反引号里的路径不存在 -> {p}")
 
