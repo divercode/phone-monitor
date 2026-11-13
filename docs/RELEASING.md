@@ -27,7 +27,8 @@ python .tools\push_to_github.py --repo git@github.com:divercode/phone-monitor.gi
 
 | versionName | versionCode | 内容 |
 |---|---|---|
-| 0.4.0 | 4 | 桌面图标 + HUD/设置界面重做（当前） |
+| 0.5.0 | 5 | 内置 4 个 LUT（只读不可删）+ 用户 LUT 导入/删除（当前） |
+| 0.4.0 | 4 | 桌面图标 + HUD/设置界面重做 |
 | 0.3.0 | 3 | 移除无 Log 的相机 UVC 输入；延迟优化（未压缩优先、低延迟模式） |
 | 0.2.0 | 2 | 相机 Type-C UVC（USB Streaming）支持、分辨率协商、CI 发布 APK |
 | 0.1.0 | 1 | 首个可用版本：UVC 预览 + LUT + 峰值/斑马/网格/直方图 |

@@ -392,8 +392,8 @@ class MainActivity : AppCompatActivity() {
     // ------------------------------------------------------------- LUT
 
     private fun showLutMenu() {
-        val names = lutStore.list()
-        if (names.isEmpty()) {
+        val entries = lutStore.list()
+        if (entries.isEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle("还没有 LUT")
                 .setMessage("导入索尼官方 S-Log3→Rec.709 还原 LUT（.cube 文件）即可实时套用。")
@@ -406,28 +406,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         val items = mutableListOf("不使用 LUT")
-        items.addAll(names)
+        items.addAll(entries.map { if (it.builtIn) "${it.name}（内置）" else it.name })
         val selected = lutStore.selectedName
         val checked = if (settings.lutEnabled && selected != null) {
-            (names.indexOf(selected) + 1).coerceAtLeast(0)
+            entries.indexOfFirst { it.name == selected }.let { if (it >= 0) it + 1 else 0 }
         } else {
             0
         }
 
         AlertDialog.Builder(this)
-            .setTitle("选择 LUT")
+            .setTitle("选择 LUT（内置不可删除）")
             .setSingleChoiceItems(items.toTypedArray(), checked) { dialog, which ->
                 if (which == 0) {
                     settings.lutEnabled = false
                     currentLut = null
                 } else {
-                    val name = names[which - 1]
-                    val lut = lutStore.load(name)
+                    val entry = entries[which - 1]
+                    val lut = lutStore.load(entry.name)
                     if (lut != null) {
-                        lutStore.selectedName = name
+                        lutStore.selectedName = entry.name
                         currentLut = lut
                         settings.lutEnabled = true
-                        toast("已套用：$name")
+                        toast("已套用：${entry.name}${if (entry.builtIn) "（内置）" else ""}")
                     } else {
                         toast("LUT 解析失败")
                     }
@@ -435,10 +435,48 @@ class MainActivity : AppCompatActivity() {
                 glView.requestRender()
                 dialog.dismiss()
             }
+            .setNeutralButton("删除…") { _, _ -> showDeleteLutDialog() }
             .setNegativeButton("导入新文件") { _, _ ->
                 lutPicker.launch(arrayOf("*/*"))
             }
             .setPositiveButton("关闭", null)
+            .show()
+    }
+
+    /** 只允许删除用户导入的 LUT；内置 LUT 不出现在删除列表里 */
+    private fun showDeleteLutDialog() {
+        val userLuts = lutStore.list().filter { !it.builtIn }
+        if (userLuts.isEmpty()) {
+            toast("没有可删除的自导入 LUT（内置 LUT 不可删除）")
+            return
+        }
+        val names = userLuts.map { it.name }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("删除自导入的 LUT")
+            .setItems(names) { _, which ->
+                val name = names[which]
+                AlertDialog.Builder(this)
+                    .setTitle("删除 $name ？")
+                    .setMessage("删除后不可恢复。内置 LUT 不允许删除。")
+                    .setPositiveButton("删除") { _, _ ->
+                        val ok = lutStore.deleteUserLut(name)
+                        if (ok) {
+                            if (lutStore.selectedName == name) {
+                                lutStore.selectedName = null
+                                currentLut = null
+                                settings.lutEnabled = false
+                            }
+                            glView.requestRender()
+                            toast("已删除：$name")
+                            showLutMenu()
+                        } else {
+                            toast("删除失败（内置 LUT 不可删除）")
+                        }
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            }
+            .setNegativeButton("取消", null)
             .show()
     }
 

@@ -1,5 +1,8 @@
 # samples · 示例 LUT
 
+> App 现在已内置 4 个外观 LUT（identity / 暖调 / 青橙 / 黑白，只读不可删），
+> 无需导入即可在 LUT 菜单里直接选。本目录的文件用于对照验证或重新生成。
+
 两个 `.cube` 文件，用于在真机上验证 LUT 管线（由 `.tools/gen_sample_luts.py` 生成）：
 
 | 文件 | 用途 | 预期效果 |
