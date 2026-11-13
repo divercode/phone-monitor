@@ -17,7 +17,7 @@
 | 测试图案 | 没插采集卡也能出画面，先验证 LUT 管线 |
 | 帧率显示 | HUD 实时显示采集出帧能力（每 30 帧统计一次） |
 | 插卡自动启动 | `device_filter.xml` 只匹配 USB 视频类设备，插采集卡自动拉起 App |
-| 双输入 | HDMI 采集卡（UVC）或相机 Type-C（UVC/USB Streaming）；PTP/PC Remote 见 Roadmap |
+| 输入源 | HDMI 采集卡（UVC，带 S-Log3，已支持）；Type-C PTP/PC Remote（带 S-Log3，M4 待实现） |
 
 ## 技术栈
 
@@ -89,66 +89,43 @@ gradle testDebugUnitTest
 
 ## 使用步骤
 
-1. 接入方式二选一（见下节「两种接入方式」）：
-   - **HDMI 采集卡**：相机 HDMI 分辨率设 1080p、关闭 HDMI 信息显示、画面风格选 S-Log3
-   - **Type-C 直连**：相机切到 USB Streaming 模式（不能拍 Log）
+1. 接入方式（只保留能出 Log 的方案，见下节）：
+   - **HDMI 采集卡（当前可用）**：相机 HDMI 分辨率设 1080p、关闭 HDMI 信息显示、画面风格选 **S-Log3**
+   - **Type-C PTP/PC Remote（M4 待实现）**：一根线看 Log，尚未完成
 2. 插上后 App 顶部状态变绿字「UVC 已连接 1920x1080」
 3. **先验证管线**：导入 `samples/identity-17.cube`（恒等 LUT），画面应与不开 LUT 完全一致
 4. 再导入正式 LUT：索尼官方 S-Log3→Rec.709 还原 LUT（下载地址见 `samples/README.md`）
 5. 点 **设置** 打开峰值/斑马/网格/直方图；点画面空白处可隐藏顶栏
 
-## 三种接入方式（重要：Type-C 有两种完全不同的协议）
+## 只保留两种"能出 Log"的方案
 
-### A. HDMI + 采集卡（当前推荐：能拍 S-Log3，延迟最低）
+> 已移除：相机「USB 串流 / USB Streaming」的 UVC 模式。它的限制是相机固件造成的
+> ——串流期间 Picture Profile 被禁用，**没有 S-Log3**，与本项目"Log + LUT 监看"的目标不符。
 
-相机 HDMI → MS2130 采集卡 → 手机 USB-C。延迟约 60~110ms，1080p60，**保留 S-Log3/PP**。
+### A. HDMI + 采集卡（当前可用，推荐）
 
-### B. Type-C 的 UVC 模式（相机 USB Streaming）——**不支持 S-Log3**
+相机 HDMI → MS2130 采集卡 → 手机 USB-C。延迟约 60~110ms，1080p60，**完整保留 S-Log3/PP**。
+这是目前唯一已验证可用的 Log 路径。
 
-相机进入「USB 串流」后把自己变成标准 UVC 摄像头，本 App 已支持（分辨率协商 1080p 优先）。
-但索尼官方文档明确：**串流期间图像配置文件（Picture Profile）被禁用**，
-所以这条路**没有 S-Log3**，LUT 只能当风格滤镜用。
+### B. Type-C PTP / PC Remote（M4，Monitor+ 同款机制）
 
-相机设置（ILCE-7M4 官方说明）：
-
-1. `MENU → 设置 → USB → USB 连接模式` 选 **`连接时选择`** 或 **`USB 串流`**
-2. `MENU → 网络 → 串流 → USB 串流`，设置 **`输出分辨率/帧速率`**
-   （4K 15p / 12.5p、1080p 60p / 50p / 30p / 25p、720p 30p / 25p）
-3. USB-C 数据线连手机，相机屏显示 **`串流:待机`**；连接模式为「连接时选择」时选 **`实时串流(USB 串流)`**
-4. 手机端 App 自动弹 USB 授权 → 允许 → 顶部显示 `UVC 已连接 1920x1080`
-
-| 限制 | 影响 |
-|---|---|
-| 串流期间 **Picture Profile 被禁用** | 不能拍 S-Log3，LUT 只能做风格化 |
-| 视频格式 MJPEG / YUV420；720p 仅 MJPEG | 1080p60 带宽需求较高 |
-| **USB 2.0 会被强制降到 720p30/25** | 1080p 必须用 USB 3.x 数据线 |
-| 相机由 USB 供电 | 手机耗电明显，建议带供电的 OTG Hub |
-| 串流期间网络功能不可用（遥控/FTP/蓝牙等） | 只做监看无影响 |
-
-### C. Type-C 的 PTP 模式（相机 PC Remote）——**能看 S-Log3，Monitor+ 用的就是这条**
-
-Monitor+ / 索尼 Monitor & Control 并不是用 UVC，而是走索尼的 **PTP 遥控协议**
-（Camera Remote Command，索尼 PTP 的私有扩展）：相机保持完整拍摄状态，
-实时取景画面**带着 Picture Profile（含 S-Log3）**传上来，App 侧再套 LUT。
+Monitor+ / 索尼 Monitor & Control 走的是索尼 **PTP 遥控协议**（Camera Remote Command，
+PTP 的私有扩展）：相机保持完整拍摄状态，实时取景画面**带着 Picture Profile（含 S-Log3）**
+传上来，App 侧再套 LUT。一根 USB-C 线即可，不需要采集卡。
 
 已核实的官方资料：
 
 - [Sony Camera Remote SDK](https://support.d-imaging.sony.co.jp/app/sdk/en/index.html)：
-  支持机型包含 **ILCE-7M4**，接口 USB / 有线 LAN / Wi-Fi；但 **Supported OS 只有
-  macOS / Windows / Linux，没有 Android** ——所以 Monitor+ 这类安卓 App 必须自己实现 PTP
+  支持 **ILCE-7M4**，接口 USB / 有线 LAN / Wi-Fi；但 **Supported OS 没有 Android**
+  （仅 macOS / Windows / Linux）——所以安卓端必须自己实现 PTP
 - [Sony Camera Remote Command](https://support.d-imaging.sony.co.jp/app/cameraremotecommand/en/index.html)：
-  就是 PTP 私有扩展的公开参考（免费，但面向企业客户下载）
+  PTP 私有扩展的公开参考（免费，面向企业客户）
 - 开源对照实现 [nredd/tethercam](https://github.com/nredd/tethercam)：USB-C + PTP + 相机
-  「PC Remote」模式即可取流；实时取景分辨率由相机决定（a7 III 为 1024x680 @ ~15fps）
+  「PC Remote」模式取流；实时取景分辨率由相机决定（a7 III 为 1024x680 @ ~15fps）
 
-**本项目的 C 方案状态：尚未实现**（这是 Roadmap 里的下一项）。实现要点：
-Android USB Host → PTP 会话 → 订阅 Sony 实时取景 → 解码 JPEG → 上传为 GL 2D 纹理
-（渲染层已有 LUT/叠加，只需把 OES 输入换成 2D 纹理）。代价是延迟高于 HDMI、
-取景分辨率由相机决定；收益是**一根 Type-C 线就能看 S-Log3**。
-
-> 结论：要**S-Log3 + LUT + 低延迟** → 方案 A（现在就能用）；
-> 要**免采集卡且能看 Log** → 方案 C（待实现，Monitor+ 同款机制）；
-> 方案 B 只适合"轻装监看、不拍 Log"。
+**状态：尚未实现（M4）**。实现要点：Android USB Host → PTP 会话 → 索尼 SDIO 扩展握手
+→ 拉取实时取景 JPEG → 解码上传为 GL 2D 纹理（现有 LUT/叠加全部复用）。
+代价：延迟高于 HDMI，取景分辨率/帧率由相机决定；收益：一根 Type-C 线看 S-Log3。
 
 
 ## 静态自检（无需 Android SDK）

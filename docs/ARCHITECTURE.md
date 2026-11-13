@@ -116,14 +116,12 @@ helper.setStateCallback(stateCallback)    // 回调统一在主线程派发
 `addSurface` 支持 `Surface` / `SurfaceView` / `SurfaceHolder` / `SurfaceTexture`（源码确认），
 因此渲染层完全不感知 UVC 的存在。
 
-**输入源与分辨率协商**：本 App 接受两类 UVC 设备——HDMI 采集卡、以及相机（索尼 A7M4 等）
-的 USB Streaming 模式。两者支持的尺寸差异很大，所以 `onCameraOpen` 里做一次协商：
+**输入源与分辨率协商**：当前 UVC 输入只面向 **HDMI 采集卡**（相机 USB Streaming 的 UVC 模式
+已被移除——该模式禁用 Picture Profile，没有 S-Log3，不符合本项目目标）。
+采集卡支持的尺寸差异较大，所以 `onCameraOpen` 里做一次协商：
 优先 1080p MJPEG → 1080p 任意格式 → 720p MJPEG → 720p 任意格式 → 最大面积；
 若当前尺寸不是目标尺寸，调用 `CameraHelper.setPreviewSize(Size)` 切换（异步排在同一条
 handler 队列里，先于 `addSurface`/`startPreview` 执行）。
-
-> 索尼 USB Streaming 的已知约束（官方文档）：串流期间 Picture Profile 被禁用（不能拍 S-Log3）、
-> 格式为 MJPEG 或 YUV420、USB 2.0 会被强制降到 720p、相机由 USB 供电。
 
 
 依赖选型踩坑记录：`com.github.jiangdongguo:AndroidUSBCamera:2.3.6` 的 POM 声明依赖
@@ -168,7 +166,7 @@ handler 队列里，先于 `addSurface`/`startPreview` 执行）。
 | 方式 | 协议 | 能否看到 S-Log3 | 延迟 | 代价 |
 |---|---|---|---|---|
 | HDMI + 采集卡 | HDMI → UVC | ✅（相机 HDMI 输出带 PP） | 60~110ms | 需要采集卡 + HDMI 线 |
-| Type-C UVC（USB Streaming） | UVC | ❌ 官方文档：串流期间 Picture Profile 禁用 | 较低 | 一根线，但无 Log |
+| Type-C UVC（USB Streaming） | UVC | ❌ 官方文档：串流期间 Picture Profile 禁用 → **本项目已移除此输入** | 较低 | 一根线，但无 Log |
 | Type-C / Wi-Fi PTP（PC Remote） | Sony PTP 私有扩展 | ✅（实时取景带 PP） | 较高（JPEG 取景流） | 需要自己实现 PTP；取景分辨率由相机决定 |
 
 Monitor+ / 索尼 Monitor & Control 走的是第三条（PTP）。索尼官方

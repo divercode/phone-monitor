@@ -89,9 +89,9 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 首次启动行为：
 
 1. 画面是**彩条测试图案** → 说明 GL/LUT 管线已跑通
-2. 接入视频源（二选一）：
-   - HDMI 采集卡：插卡 → 系统弹 USB 授权 → 允许
-   - Type-C 直连：相机切 USB Streaming 模式 → USB-C 线连手机 → 弹授权 → 允许
+2. 接入视频源：**HDMI 采集卡**（插卡 → 系统弹 USB 授权 → 允许）。
+   > 不要用相机的「USB 串流 / USB Streaming」模式：该模式禁用 Picture Profile、没有 S-Log3，
+   > 本项目不支持。Type-C 直连要等 M4 的 PTP/PC Remote 输入。
 3. 顶部状态变为 `UVC 已连接 1920x1080`（App 会优先协商 1080p）
 4. 点 **LUT** 导入 `samples/identity-17.cube`，画面应**完全不变**（管线正确性自测）
 5. 再导入索尼官方 S-Log3→Rec.709 LUT
@@ -100,9 +100,7 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 
 - [ ] 无采集卡时显示测试图案，不崩溃
 - [ ] HDMI 采集卡插上后出现实时画面，状态文字正确
-- [ ] Type-C 直连（相机 USB Streaming）时 App 自动拉起并出画面
-- [ ] 确认 Type-C UVC 模式下**没有 S-Log3**（相机官方限制）；要看 Log 需 HDMI 或等 M4 的 PTP 输入
-- [ ] 分辨率协商到 1920x1080（状态栏显示，而非 4K/720p）
+- [ ] 相机 S-Log3 画面能正常显示，套 LUT 后还原正确
 - [ ] 插采集卡时系统自动拉起本 App（`device_filter` 只匹配视频类设备）
 - [ ] HUD 帧率不是 `--`，数值与源标称接近（1080p60 约 55~60 fps）
 - [ ] LUT 开关/切换生效（identity 无变化、warm 有暖调）
