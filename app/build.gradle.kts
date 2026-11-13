@@ -11,8 +11,14 @@ android {
         applicationId = "com.phonemonitor.monitor"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        // 发版规则：每次更新必须同时递增这两个值（见 docs/RELEASING.md）
+        versionCode = 4
+        versionName = "0.4.0"
+    }
+
+    buildFeatures {
+        // 用于在 App 内显示版本号（BuildConfig.VERSION_NAME）
+        buildConfig = true
     }
 
     buildTypes {

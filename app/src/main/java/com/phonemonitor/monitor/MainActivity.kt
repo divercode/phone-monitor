@@ -22,6 +22,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import com.phonemonitor.monitor.BuildConfig
 import com.phonemonitor.monitor.gl.MonitorRenderer
 import com.phonemonitor.monitor.lut.Lut3D
 import com.phonemonitor.monitor.lut.LutStore
@@ -559,6 +560,16 @@ class MainActivity : AppCompatActivity() {
             settings.desqueeze = desqueezeOptions[it.coerceIn(0, 2)]
             glView.requestRender()
         }
+
+        // 版本号（发版规则要求每次更新递增，见 docs/RELEASING.md）
+        container.addView(
+            TextView(this).apply {
+                text = "版本 v${BuildConfig.VERSION_NAME}（build ${BuildConfig.VERSION_CODE}）"
+                setTextColor(color(R.color.text_secondary))
+                textSize = 12f
+                setPadding(0, dp(20), 0, 0)
+            },
+        )
 
         val scroll = ScrollView(this).apply { addView(container) }
         val dialog = AlertDialog.Builder(this)

@@ -3,6 +3,13 @@
 用安卓手机 + USB HDMI 采集卡（UVC）当索尼微单的外接监视器，并实时套用 3D LUT。
 相当于一个**开源、可魔改的 Monitor+ 精简替代品**（只做监看，不做相机控制）。
 
+## 当前版本
+
+- **v0.4.0（versionCode 4）**：桌面图标（自适应/圆形/单色）+ HUD 与设置界面重做
+- **发版规则：每次更新必须同时递增 `versionCode` 与 `versionName`**，见
+  [docs/RELEASING.md](docs/RELEASING.md)；App 内「设置」底部可看到当前版本
+- 直接下载最新包：GitHub Release `apk-latest`（公开，无需登录）
+
 ## 已实现功能（MVP）
 
 | 功能 | 说明 |
