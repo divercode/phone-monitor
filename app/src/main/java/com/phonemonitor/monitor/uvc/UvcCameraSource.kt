@@ -68,8 +68,8 @@ class UvcCameraSource(
             Log.i(TAG, "onCameraOpen: $device")
             val h = helper ?: return
 
-            // 相机（如索尼 USB Streaming）与采集卡支持的尺寸差异很大：
-            // 打开后按 1080p > 720p > 最大面积 的优先级协商一次，优先 MJPEG（省带宽）
+            // 采集卡支持的尺寸/格式差异很大：打开后按 1080p > 720p > 最大面积 协商，
+            // 同分辨率优先未压缩（延迟最低），其次 MJPEG（省带宽）
             val target = choosePreviewSize(h)
             val current = h.previewSize
             if (target != null &&
@@ -87,6 +87,8 @@ class UvcCameraSource(
                 previewWidth = current?.width ?: preferredWidth
                 previewHeight = current?.height ?: preferredHeight
             }
+            val liveSize = target ?: current
+            val fpsTag = liveSize?.fps?.takeIf { it > 0 }?.let { "@$it" } ?: ""
             callback?.onPreviewSize(previewWidth, previewHeight)
 
             // 渲染器可能还没就绪：没有 SurfaceTexture 时只报告状态，等 attach() 再挂载并起预览
@@ -98,12 +100,12 @@ class UvcCameraSource(
                 h.startPreview()
                 callback?.onStatus(
                     FrameSource.Status.CONNECTED,
-                    "UVC 已连接 ${previewWidth}x$previewHeight",
+                    "UVC 已连接 ${previewWidth}x$previewHeight$fpsTag",
                 )
             } else {
                 callback?.onStatus(
                     FrameSource.Status.CONNECTED,
-                    "UVC 已连接 ${previewWidth}x$previewHeight（等待画面）",
+                    "UVC 已连接 ${previewWidth}x$previewHeight$fpsTag（等待画面）",
                 )
             }
         }
@@ -212,8 +214,9 @@ class UvcCameraSource(
         )
 
     /**
-     * 在设备支持的尺寸里选一个：优先 1080p，其次 720p，最后最大面积；同分辨率优先 MJPEG。
-     * 这样既能适配 HDMI 采集卡，也能适配索尼相机 USB Streaming（MJPEG / YUV420）。
+     * 在设备支持的尺寸里选一个：优先 1080p，其次 720p，最后最大面积。
+     * 同分辨率下**优先未压缩格式（低延迟）**，其次 MJPEG（省带宽），最后任意格式。
+     * 这样既能吃满采集卡的低延迟模式，也能兼容只有 MJPEG 的廉价卡。
      */
     private fun choosePreviewSize(h: CameraHelper): Size? {
         val list = h.supportedSizeList ?: return null
@@ -224,8 +227,10 @@ class UvcCameraSource(
                 it.width == width && it.height == height && (type == null || it.type == type)
             }
 
-        return find(1920, 1080, MJPEG_FRAME_TYPE)
+        return find(1920, 1080, UNCOMPRESSED_FRAME_TYPE)
+            ?: find(1920, 1080, MJPEG_FRAME_TYPE)
             ?: find(1920, 1080, null)
+            ?: find(1280, 720, UNCOMPRESSED_FRAME_TYPE)
             ?: find(1280, 720, MJPEG_FRAME_TYPE)
             ?: find(1280, 720, null)
             ?: list.maxByOrNull { it.width * it.height }
@@ -245,5 +250,8 @@ class UvcCameraSource(
 
         /** libuvccamera 中 UVC_VS_FRAME_MJPEG 的值 */
         private const val MJPEG_FRAME_TYPE = 0x07
+
+        /** libuvccamera 中 UVC_VS_FRAME_UNCOMPRESSED 的值（YUYV/NV12 等未压缩流，延迟更低） */
+        private const val UNCOMPRESSED_FRAME_TYPE = 0x05
     }
 }

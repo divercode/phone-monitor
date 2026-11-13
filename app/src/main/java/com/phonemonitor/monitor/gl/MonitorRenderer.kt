@@ -1,6 +1,7 @@
 package com.phonemonitor.monitor.gl
 
 import android.graphics.SurfaceTexture
+import android.opengl.EGL14
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
@@ -101,6 +102,10 @@ class MonitorRenderer(
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glClearColor(0f, 0f, 0f, 1f)
 
+        // 低延迟模式：关闭垂直同步。默认（间隔 1）会等到下一个 vsync 才交换缓冲，
+        // 在 60Hz 屏上最多多等 16.7ms；间隔 0 立即交换，代价是可能撕裂。
+        applySwapInterval(force = true)
+
         // GL 上下文重建时所有 GL 资源失效，重置引用
         lutTextureId = 0
         uploadedLut = null
@@ -139,6 +144,7 @@ class MonitorRenderer(
     }
 
     override fun onDrawFrame(gl: GL10?) {
+        applySwapInterval(force = false)
         val st = surfaceTexture ?: return
         if (frameAvailable.compareAndSet(true, false)) {
             st.updateTexImage()
@@ -175,6 +181,22 @@ class MonitorRenderer(
             }
             fpsFrameCount = 0
             fpsWindowStartNanos = nowNanos
+        }
+    }
+
+    /** 已应用的 swap interval，-1 表示尚未应用 */
+    private var appliedSwapInterval = -1
+
+    /** 按「低延迟模式」开关同步 EGL swap interval（0 = 不等 vsync） */
+    private fun applySwapInterval(force: Boolean) {
+        val want = if (settings.lowLatency) 0 else 1
+        if (!force && want == appliedSwapInterval) return
+        runCatching {
+            val display = EGL14.eglGetCurrentDisplay()
+            if (display != EGL14.EGL_NO_DISPLAY) {
+                EGL14.eglSwapInterval(display, want)
+                appliedSwapInterval = want
+            }
         }
     }
 

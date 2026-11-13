@@ -369,6 +369,11 @@ class MainActivity : AppCompatActivity() {
             glView.requestRender()
         }
 
+        addCheck(container, "低延迟模式（关闭垂直同步，可能撕裂）", settings.lowLatency) { checked ->
+            settings.lowLatency = checked
+            glView.requestRender()
+        }
+
         val scroll = ScrollView(this).apply { addView(container) }
         AlertDialog.Builder(this)
             .setTitle("监看设置")

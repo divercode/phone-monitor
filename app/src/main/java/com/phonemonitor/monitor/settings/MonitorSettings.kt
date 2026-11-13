@@ -56,6 +56,11 @@ class MonitorSettings(context: Context) {
         get() = prefs.getBoolean(KEY_HISTOGRAM, false)
         set(value) = prefs.edit().putBoolean(KEY_HISTOGRAM, value).apply()
 
+    /** 低延迟模式：关闭垂直同步（可能轻微撕裂，但少约 1 帧显示延迟） */
+    var lowLatency: Boolean
+        get() = prefs.getBoolean(KEY_LOW_LATENCY, false)
+        set(value) = prefs.edit().putBoolean(KEY_LOW_LATENCY, value).apply()
+
     companion object {
         private const val PREFS_NAME = "monitor_settings"
         private const val KEY_LUT_ENABLED = "lut_enabled"
@@ -67,5 +72,6 @@ class MonitorSettings(context: Context) {
         private const val KEY_SAFE_AREA = "safe_area"
         private const val KEY_DESQUEEZE = "desqueeze"
         private const val KEY_HISTOGRAM = "histogram"
+        private const val KEY_LOW_LATENCY = "low_latency"
     }
 }
