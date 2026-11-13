@@ -17,6 +17,7 @@
 | 测试图案 | 没插采集卡也能出画面，先验证 LUT 管线 |
 | 帧率显示 | HUD 实时显示采集出帧能力（每 30 帧统计一次） |
 | 插卡自动启动 | `device_filter.xml` 只匹配 USB 视频类设备，插采集卡自动拉起 App |
+| 双输入 | HDMI 采集卡（UVC）或 **相机 Type-C 直连（USB Streaming）**，同一套渲染管线 |
 
 ## 技术栈
 
@@ -82,16 +83,51 @@ samples/                       # 示例 .cube（恒等 LUT 用于验证管线）
 gradle testDebugUnitTest
 ```
 
-> 本机环境没有 Android SDK/JDK，源码未在此编译过；依赖坐标与所调用的库 API 已逐项核对源码，
-> 首次编译若有残余报错，见下方「已知风险」。
+> 编译状态：GitHub Actions 已实测通过（JDK 17 + SDK 34 + Gradle 8.7），
+> 单测 12 例与 `assembleDebug` 均为成功，可在 Actions 页面下载 APK。
+> 真机（采集卡/相机）运行仍需按 [docs/BUILD-CHECKLIST.md](docs/BUILD-CHECKLIST.md) 验收。
 
 ## 使用步骤
 
-1. 相机（如 A7M4）：HDMI 分辨率设 **1080p**，**HDMI 信息显示 = 关**，画面风格选 S-Log3
-2. 采集卡插手机，App 顶部状态变绿字「UVC 已连接 1920x1080」
+1. 接入方式二选一（见下节「两种接入方式」）：
+   - **HDMI 采集卡**：相机 HDMI 分辨率设 1080p、关闭 HDMI 信息显示、画面风格选 S-Log3
+   - **Type-C 直连**：相机切到 USB Streaming 模式（不能拍 Log）
+2. 插上后 App 顶部状态变绿字「UVC 已连接 1920x1080」
 3. **先验证管线**：导入 `samples/identity-17.cube`（恒等 LUT），画面应与不开 LUT 完全一致
 4. 再导入正式 LUT：索尼官方 S-Log3→Rec.709 还原 LUT（下载地址见 `samples/README.md`）
 5. 点 **设置** 打开峰值/斑马/网格/直方图；点画面空白处可隐藏顶栏
+
+## 两种接入方式
+
+### A. HDMI + 采集卡（推荐：能拍 S-Log3，LUT 才有意义）
+
+相机 HDMI → MS2130 采集卡 → 手机 USB-C。延迟约 60~110ms，1080p60。
+
+### B. Type-C 直连（相机 USB Streaming，免采集卡）
+
+索尼 A7M4 / ZV 系列自带 **USB Streaming**：把相机当 UVC 摄像头输出，手机直接当主机接收。
+本 App 已支持（会自动把采集卡和相机都识别为 UVC 输入，并协商到 1080p 优先）。
+
+相机设置（以 ILCE-7M4 官方说明为准）：
+
+1. `MENU → 设置 → USB → USB 连接模式` 选 **`连接时选择`** 或 **`USB 串流`**
+2. `MENU → 网络 → 串流 → USB 串流`，设置 **`输出分辨率/帧速率`**
+   （可选 4K 15p / 12.5p、1080p 60p / 50p / 30p / 25p、720p 30p / 25p）
+3. 用 USB-C 数据线连手机，相机屏显示 **`串流:待机`**
+4. 若连接模式是「连接时选择」，在相机弹出的选项里选 **`实时串流(USB 串流)`**
+5. 手机端 App 自动弹 USB 授权 → 允许 → 顶部显示 `UVC 已连接 1920x1080`
+
+**必须知道的限制**（索尼官方文档明确写出）：
+
+| 限制 | 影响 |
+|---|---|
+| 串流期间 **图像配置文件（Picture Profile）被禁用** | 不能拍 S-Log3 → LUT 只能当"风格滤镜"，做不了 Log 还原 |
+| 视频格式为 MJPEG 或 YUV420；720p 仅 MJPEG | 1080p60 建议用 YUV420/MJPEG 均可；带宽不够会掉帧 |
+| **USB 2.0 连接会被强制降到 720p30/25** | 想要 1080p 必须用 USB 3.x 的 C-to-C 数据线 |
+| 相机由 USB 供电 | 手机会给相机供电，手机耗电明显，建议接充电器/带供电的 OTG Hub |
+| 串流期间网络功能（遥控拍摄、FTP、手机遥控、蓝牙）不可用 | 只做监看没问题 |
+
+> 结论：要**Log + LUT 监看**用方案 A；要**轻装、免采集卡**用方案 B（接受不能拍 Log）。
 
 ## 静态自检（无需 Android SDK）
 
@@ -106,14 +142,15 @@ python .tools\gen_sample_luts.py  # 重新生成 samples/ 下的示例 LUT（带
 
 当前结果：
 
-- `check_syntax.py`：**15 个 Kotlin/kts 文件 + 3 个 XML 全部通过**（含单元测试源码）
+- `check_syntax.py`：**15 个 Kotlin/kts 文件 + 4 个 XML 全部通过**（含单元测试源码）
 - `check_symbols.py`：**内部引用 / 枚举 / 成员 / 资源 / Manifest 检查全部通过**
 - `verify_lut_math.py`：恒等 LUT 与非线性 LUT 上，着色器图集采样与参考三线性插值的
   **最大误差 0.0020**（= 8bit 量化的 0.5/255，含切片边界采样），网格遮罩在三分线处 alpha=1.000
 - `check_docs.py`：**4 个 Markdown 文件的相对链接与仓库路径全部有效**
 - `gen_sample_luts.py`：恒等 LUT 与暖调 LUT 均通过「黑点=0、白点=1、单调」自检
 
-（这些不等于编译通过——类型推断、Android API 可用性仍需 Android Studio 真实构建。）
+> 编译已由 GitHub Actions 实测通过（单测 12 例 + `assembleDebug` 均成功），
+> 静态脚本只是本地快速回归手段。
 
 ## 依赖核验（抓真实仓库元数据）
 

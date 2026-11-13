@@ -60,26 +60,43 @@ class UvcCameraSource(
         override fun onCameraOpen(device: UsbDevice) {
             Log.i(TAG, "onCameraOpen: $device")
             val h = helper ?: return
-            val size = h.previewSize
-            val w = size?.width ?: preferredWidth
-            val ht = size?.height ?: preferredHeight
-            callback?.onPreviewSize(w, ht)
+
+            // 相机（如索尼 USB Streaming）与采集卡支持的尺寸差异很大：
+            // 打开后按 1080p > 720p > 最大面积 的优先级协商一次，优先 MJPEG（省带宽）
+            val target = choosePreviewSize(h)
+            val current = h.previewSize
+            if (target != null &&
+                (current == null || target.width != current.width || target.height != current.height)
+            ) {
+                Log.i(
+                    TAG,
+                    "切换预览尺寸 ${current?.width}x${current?.height} -> " +
+                        "${target.width}x${target.height}@${target.fps}",
+                )
+                runCatching { h.setPreviewSize(target) }
+                previewWidth = target.width
+                previewHeight = target.height
+            } else {
+                previewWidth = current?.width ?: preferredWidth
+                previewHeight = current?.height ?: preferredHeight
+            }
+            callback?.onPreviewSize(previewWidth, previewHeight)
 
             // 渲染器可能还没就绪：没有 SurfaceTexture 时只报告状态，等 attach() 再挂载并起预览
             val st = surfaceTexture
             if (st != null) {
-                st.setDefaultBufferSize(w, ht)
+                st.setDefaultBufferSize(previewWidth, previewHeight)
                 h.addSurface(st, false)
                 surfaceAttached = true
                 h.startPreview()
                 callback?.onStatus(
                     FrameSource.Status.CONNECTED,
-                    "UVC 已连接 ${w}x$ht",
+                    "UVC 已连接 ${previewWidth}x$previewHeight",
                 )
             } else {
                 callback?.onStatus(
                     FrameSource.Status.CONNECTED,
-                    "UVC 已连接 ${w}x$ht（等待画面）",
+                    "UVC 已连接 ${previewWidth}x$previewHeight（等待画面）",
                 )
             }
         }
@@ -186,6 +203,26 @@ class UvcCameraSource(
             30,
             arrayListOf(30),
         )
+
+    /**
+     * 在设备支持的尺寸里选一个：优先 1080p，其次 720p，最后最大面积；同分辨率优先 MJPEG。
+     * 这样既能适配 HDMI 采集卡，也能适配索尼相机 USB Streaming（MJPEG / YUV420）。
+     */
+    private fun choosePreviewSize(h: CameraHelper): Size? {
+        val list = h.supportedSizeList ?: return null
+        if (list.isEmpty()) return null
+
+        fun find(width: Int, height: Int, type: Int?): Size? =
+            list.firstOrNull {
+                it.width == width && it.height == height && (type == null || it.type == type)
+            }
+
+        return find(1920, 1080, MJPEG_FRAME_TYPE)
+            ?: find(1920, 1080, null)
+            ?: find(1280, 720, MJPEG_FRAME_TYPE)
+            ?: find(1280, 720, null)
+            ?: list.maxByOrNull { it.width * it.height }
+    }
 
     private fun isUvcDevice(device: UsbDevice): Boolean {
         if (device.deviceClass == USB_CLASS_VIDEO) return true

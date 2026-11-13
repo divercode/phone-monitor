@@ -116,6 +116,16 @@ helper.setStateCallback(stateCallback)    // 回调统一在主线程派发
 `addSurface` 支持 `Surface` / `SurfaceView` / `SurfaceHolder` / `SurfaceTexture`（源码确认），
 因此渲染层完全不感知 UVC 的存在。
 
+**输入源与分辨率协商**：本 App 接受两类 UVC 设备——HDMI 采集卡、以及相机（索尼 A7M4 等）
+的 USB Streaming 模式。两者支持的尺寸差异很大，所以 `onCameraOpen` 里做一次协商：
+优先 1080p MJPEG → 1080p 任意格式 → 720p MJPEG → 720p 任意格式 → 最大面积；
+若当前尺寸不是目标尺寸，调用 `CameraHelper.setPreviewSize(Size)` 切换（异步排在同一条
+handler 队列里，先于 `addSurface`/`startPreview` 执行）。
+
+> 索尼 USB Streaming 的已知约束（官方文档）：串流期间 Picture Profile 被禁用（不能拍 S-Log3）、
+> 格式为 MJPEG 或 YUV420、USB 2.0 会被强制降到 720p、相机由 USB 供电。
+
+
 依赖选型踩坑记录：`com.github.jiangdongguo:AndroidUSBCamera:2.3.6` 的 POM 声明依赖
 `com.serenegiant:common:4.1.1`，而该构件只存在于 jcenter（已关停），Central 上 404，
 因此改用 `com.herohan:UVCAndroid:1.0.13`（Central 托管，AAR 内含

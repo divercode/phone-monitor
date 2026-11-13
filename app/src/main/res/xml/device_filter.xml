@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  只匹配 USB Video Class（class = 14）设备：相机 HDMI 采集卡插上时自动拉起本 App，
-  插键盘/存储等其他 USB 设备不会弹本 App。
+  自动拉起本 App 的 USB 设备匹配规则：
+  1) 标准 UVC 视频类设备（HDMI 采集卡）
+  2) 索尼相机（vendor-id 1356 = 0x054C）：相机切到 USB Streaming 后以 UVC 设备出现，
+     插上即自动打 App，不用手动找
+  注意：Android 的 usb-device 过滤器里 vendor-id 用十进制。
 -->
 <resources>
     <usb-device class="14" />
+    <usb-device vendor-id="1356" />
 </resources>
