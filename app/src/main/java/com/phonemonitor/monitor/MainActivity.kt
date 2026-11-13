@@ -302,11 +302,14 @@ class MainActivity : AppCompatActivity() {
         FrameLayout.LayoutParams.MATCH_PARENT,
     )
 
-    private fun wrapLp(marginStart: Int = 0): LinearLayout.LayoutParams =
+    private fun wrapLp(marginStart: Int = 0, marginEnd: Int = 0): LinearLayout.LayoutParams =
         LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { this.marginStart = marginStart }
+        ).apply {
+            this.marginStart = marginStart
+            this.marginEnd = marginEnd
+        }
 
     private fun iconButton(iconRes: Int, desc: String, onClick: () -> Unit): ImageView =
         ImageView(this).apply {
