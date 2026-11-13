@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">手机监视器</string>
+    <string name="status_waiting">等待 UVC 采集卡…（当前显示测试图案）</string>
+    <string name="status_connected">UVC 已连接</string>
+    <string name="status_error">采集卡打开失败</string>
+</resources>
