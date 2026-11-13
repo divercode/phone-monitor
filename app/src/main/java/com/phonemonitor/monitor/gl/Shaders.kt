@@ -49,6 +49,7 @@ object Shaders {
         uniform vec2 uVideoOrigin;
         uniform float uTestPattern;
         uniform float uQuarterTurns;
+        uniform float uMirror;
 
         // ---------- 工具函数 ----------
         float luma(vec3 c) {
@@ -142,6 +143,11 @@ object Shaders {
                 } else {
                     uv = vec2(1.0 - uv.y, uv.x);
                 }
+            }
+
+            // 系统相机预览左右镜像修正（UVC 为 0）
+            if (uMirror > 0.5) {
+                uv.x = 1.0 - uv.x;
             }
 
             if (uDesqueeze > 1.001) {

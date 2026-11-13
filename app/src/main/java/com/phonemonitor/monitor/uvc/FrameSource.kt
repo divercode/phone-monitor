@@ -18,6 +18,9 @@ interface FrameSource {
 
         /** 预览画面相对屏幕的旋转（0/1/2/3 个 90°，系统相机需要，UVC 恒为 0） */
         fun onOrientation(quarterTurns: Int) {}
+
+        /** 是否需要左右镜像（系统相机预览可能有镜像，UVC 为 false） */
+        fun onMirror(mirror: Boolean) {}
     }
 
     /** 开始监听设备接入（幂等） */

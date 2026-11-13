@@ -27,7 +27,8 @@ python .tools\push_to_github.py --repo git@github.com:divercode/phone-monitor.gi
 
 | versionName | versionCode | 内容 |
 |---|---|---|
-| 0.8.0 | 9 | 新增「系统相机测试源」可选输入 + 预览旋转处理（当前） |
+| 0.8.1 | 10 | 修复系统相机预览左右镜像（渲染层增加 uMirror 水平翻转）（当前） |
+| 0.8.0 | 9 | 新增「系统相机测试源」可选输入 + 预览旋转处理 |
 | 0.7.1 | 8 | 开发交接文档：PROGRESS / DEVELOPMENT / AGENTS |
 | 0.7.0 | 7 | 内置 8 个索尼官方 Look LUT（只读不可删）；LUT 显示名友好化 |
 | 0.6.0 | 6 | 移除自研内置 LUT；内置通道保留给官方 LUT |

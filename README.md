@@ -5,7 +5,7 @@
 
 ## 当前版本
 
-- **v0.8.0（versionCode 9）**：新增「系统相机测试源」可选输入（没有采集卡也能验证渲染/LUT）
+- **v0.8.1（versionCode 10）**：修复系统相机预览左右镜像
 - **发版规则：每次更新必须同时递增 `versionCode` 与 `versionName`**，见
   [docs/RELEASING.md](docs/RELEASING.md)；App 内「设置」底部可看到当前版本
 - 直接下载最新包：GitHub Release `apk-latest`（公开，无需登录）

@@ -109,6 +109,14 @@ class MainActivity : AppCompatActivity() {
                 glView.requestRender()
             }
         }
+
+        override fun onMirror(mirror: Boolean) {
+            runOnUiThread {
+                if (destroyed) return@runOnUiThread
+                renderer.mirror = mirror
+                glView.requestRender()
+            }
+        }
     }
 
     private val lutPicker =
@@ -221,6 +229,7 @@ class MainActivity : AppCompatActivity() {
         }
         runCatching { source.release() }
         renderer.quarterTurns = 0
+        renderer.mirror = false
         source = createSource()
         latestSurfaceTexture?.let { source.attach(it) }
         if (resumed && !destroyed) {

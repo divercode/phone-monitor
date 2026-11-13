@@ -95,6 +95,7 @@ class MonitorRenderer(
     private var uVideoOrigin = -1
     private var uTestPattern = -1
     private var uQuarterTurns = -1
+    private var uMirror = -1
     private var aPosition = -1
     private var aTexCoord = -1
 
@@ -209,6 +210,10 @@ class MonitorRenderer(
     @Volatile
     var quarterTurns: Int = 0
 
+    /** 是否左右镜像（系统相机需要，UVC 恒为 false） */
+    @Volatile
+    var mirror: Boolean = false
+
     private fun hasRealSource(): Boolean = sourceConnected
 
     // ---------------------------------------------------------------- drawing
@@ -255,6 +260,7 @@ class MonitorRenderer(
         GLES20.glUniform2f(uVideoOrigin, vp[0].toFloat(), vp[1].toFloat())
         GLES20.glUniform1f(uTestPattern, if (testPattern) 1f else 0f)
         GLES20.glUniform1f(uQuarterTurns, quarterTurns.toFloat())
+        GLES20.glUniform1f(uMirror, if (mirror) 1f else 0f)
 
         val pos = quadPositions ?: return
         val tex = quadTexCoords ?: return
@@ -402,6 +408,7 @@ class MonitorRenderer(
         uVideoOrigin = prog.uniform("uVideoOrigin")
         uTestPattern = prog.uniform("uTestPattern")
         uQuarterTurns = prog.uniform("uQuarterTurns")
+        uMirror = prog.uniform("uMirror")
         aPosition = prog.attrib("aPosition")
         aTexCoord = prog.attrib("aTexCoord")
     }

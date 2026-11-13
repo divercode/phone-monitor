@@ -90,6 +90,8 @@ class SystemCameraSource(private val context: Context) : FrameSource {
             val map = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             previewSize = chooseSize(map?.getOutputSizes(SurfaceTexture::class.java))
             callback?.onOrientation(quarterTurns)
+            // Camera2 预览到 SurfaceTexture 后画面左右镜像，需要渲染层翻转一次
+            callback?.onMirror(true)
             callback?.onPreviewSize(previewSize.width, previewSize.height)
             st.setDefaultBufferSize(previewSize.width, previewSize.height)
             cameraManager.openCamera(id, deviceCallback, handler)
