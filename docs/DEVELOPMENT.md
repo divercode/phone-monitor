@@ -80,6 +80,10 @@ python .tools/bump_version.py --minor  # 功能：minor+1
 3. 上传 artifact + 用 `gh release upload apk-latest --clobber` 更新公开 Release
 4. **失败时**把日志推到 `ci-logs` 分支（公开可匿名拉取）
 
+> **签名说明**：CI 通过 `actions/cache` 固定 `~/.android/debug.keystore`，保证各次构建的
+> APK 签名一致、可覆盖安装。若缓存被清理（7 天未用）导致签名变化，需要卸载旧版重装一次；
+> 也可在 workflow 里改 `key: phone-monitor-debug-keystore-v2` 主动换新密钥。
+
 查看 CI 状态：
 
 ```bash

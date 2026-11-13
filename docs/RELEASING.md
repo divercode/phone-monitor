@@ -27,7 +27,8 @@ python .tools\push_to_github.py --repo git@github.com:divercode/phone-monitor.gi
 
 | versionName | versionCode | 内容 |
 |---|---|---|
-| 0.8.1 | 10 | 修复系统相机预览左右镜像（渲染层增加 uMirror 水平翻转）（当前） |
+| 0.8.2 | 11 | CI 固定 debug 签名密钥（缓存 keystore），修复"签名不同无法覆盖安装"（当前） |
+| 0.8.1 | 10 | 修复系统相机预览左右镜像（渲染层增加 uMirror 水平翻转） |
 | 0.8.0 | 9 | 新增「系统相机测试源」可选输入 + 预览旋转处理 |
 | 0.7.1 | 8 | 开发交接文档：PROGRESS / DEVELOPMENT / AGENTS |
 | 0.7.0 | 7 | 内置 8 个索尼官方 Look LUT（只读不可删）；LUT 显示名友好化 |

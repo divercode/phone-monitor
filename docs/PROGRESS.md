@@ -1,6 +1,6 @@
 # 开发进度快照（交接给另一台开发机 / DSH）
 
-> 更新时间：2026-11-13 · 版本 **v0.8.1**（versionCode 10）
+> 更新时间：2026-11-13 · 版本 **v0.8.2**（versionCode 11）
 > 仓库：<https://github.com/divercode/phone-monitor>（public，默认分支 `main`）
 > 最近 CI：构建 + 单测通过，APK 自动发布到 Release `apk-latest`
 
@@ -40,6 +40,7 @@
 | 真机 UVC 采集 | ⏳ **未验证** | 本开发机无采集卡/手机 |
 | 真机 USB 权限流程 | ⏳ 未验证 | 个别国产 ROM 可能拦截 |
 | 实际延迟 | ⏳ 未实测 | 预期 60~110ms，优化后 40~60ms |
+| APK 签名一致性 | ✅ 已修复 | v0.8.2 起 CI 缓存固定 debug keystore；旧版需卸载一次 |
 
 ## 4. 重要决策与已排除项
 

@@ -5,10 +5,13 @@
 
 ## 当前版本
 
-- **v0.8.1（versionCode 10）**：修复系统相机预览左右镜像
+- **v0.8.2（versionCode 11）**：CI 固定 debug 签名密钥，修复 APK "签名不同无法覆盖安装"
 - **发版规则：每次更新必须同时递增 `versionCode` 与 `versionName`**，见
   [docs/RELEASING.md](docs/RELEASING.md)；App 内「设置」底部可看到当前版本
 - 直接下载最新包：GitHub Release `apk-latest`（公开，无需登录）
+
+> 安装提示：如果你装过更早的 CI 构建（当时每次构建签名都不同），本次需要**先卸载旧版**
+> 再安装；从 v0.8.2 起 CI 使用缓存固定的 debug 密钥，后续升级可直接覆盖安装。
 
 ## 开发 / 交接文档
 

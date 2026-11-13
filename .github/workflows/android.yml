@@ -21,6 +21,28 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # 固定 debug 签名密钥：GitHub runner 每次都会新建 debug keystore，
+      # 不缓存的话每次 APK 签名都不同，无法覆盖安装。这里把 keystore 缓存下来复用。
+      # 注意：缓存过期（7 天未用）会导致签名再次变化，届时需卸载重装一次。
+      - name: Cache debug keystore (stable signature)
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: phone-monitor-debug-keystore-v1
+          restore-keys: |
+            phone-monitor-debug-keystore-
+
+      - name: Show debug keystore fingerprint
+        shell: bash
+        run: |
+          # 首次运行时 keystore 还不存在（Gradle 构建时才生成），这里只做提示
+          if [ -f "$HOME/.android/debug.keystore" ]; then
+            keytool -list -v -keystore "$HOME/.android/debug.keystore" \
+              -storepass android -alias androiddebugkey 2>/dev/null | grep -E "SHA256:|Alias name:" || true
+          else
+            echo "debug keystore 将在本次构建中生成，并缓存给后续构建使用"
+          fi
+
       # 直接用 GitHub runner 预装的 Android SDK，避免 setup-android 动作的不稳定
       - name: Prepare Android SDK
         shell: bash
