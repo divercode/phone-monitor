@@ -1,5 +1,6 @@
 package com.phonemonitor.monitor
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
@@ -396,8 +397,14 @@ class MainActivity : AppCompatActivity() {
         if (entries.isEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle("还没有 LUT")
-                .setMessage("导入索尼官方 S-Log3→Rec.709 还原 LUT（.cube 文件）即可实时套用。")
-                .setPositiveButton("导入 .cube") { _, _ ->
+                .setMessage(
+                    "默认不内置第三方版权 LUT。\n\n" +
+                        "• 从索尼官网下载官方 .cube 后，用「导入」使用（可删除）\n" +
+                        "• 若想把官方 LUT 作为「内置、不可删除」，把文件放进\n" +
+                        "  app/src/main/assets/luts/ 后重新构建",
+                )
+                .setPositiveButton("打开索尼官网") { _, _ -> openSonyLutPage() }
+                .setNeutralButton("导入 .cube") { _, _ ->
                     lutPicker.launch(arrayOf("*/*"))
                 }
                 .setNegativeButton("取消", null)
@@ -405,31 +412,35 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val items = mutableListOf("不使用 LUT")
+        val items = mutableListOf("从索尼官网获取 LUT…", "不使用 LUT")
         items.addAll(entries.map { if (it.builtIn) "${it.name}（内置）" else it.name })
         val selected = lutStore.selectedName
         val checked = if (settings.lutEnabled && selected != null) {
-            entries.indexOfFirst { it.name == selected }.let { if (it >= 0) it + 1 else 0 }
+            entries.indexOfFirst { it.name == selected }.let { if (it >= 0) it + 2 else 1 }
         } else {
-            0
+            1
         }
 
         AlertDialog.Builder(this)
             .setTitle("选择 LUT（内置不可删除）")
             .setSingleChoiceItems(items.toTypedArray(), checked) { dialog, which ->
-                if (which == 0) {
-                    settings.lutEnabled = false
-                    currentLut = null
-                } else {
-                    val entry = entries[which - 1]
-                    val lut = lutStore.load(entry.name)
-                    if (lut != null) {
-                        lutStore.selectedName = entry.name
-                        currentLut = lut
-                        settings.lutEnabled = true
-                        toast("已套用：${entry.name}${if (entry.builtIn) "（内置）" else ""}")
-                    } else {
-                        toast("LUT 解析失败")
+                when {
+                    which == 0 -> openSonyLutPage()
+                    which == 1 -> {
+                        settings.lutEnabled = false
+                        currentLut = null
+                    }
+                    else -> {
+                        val entry = entries[which - 2]
+                        val lut = lutStore.load(entry.name)
+                        if (lut != null) {
+                            lutStore.selectedName = entry.name
+                            currentLut = lut
+                            settings.lutEnabled = true
+                            toast("已套用：${entry.name}${if (entry.builtIn) "（内置）" else ""}")
+                        } else {
+                            toast("LUT 解析失败")
+                        }
                     }
                 }
                 glView.requestRender()
@@ -441,6 +452,16 @@ class MainActivity : AppCompatActivity() {
             }
             .setPositiveButton("关闭", null)
             .show()
+    }
+
+    /** 打开索尼官方 LUT 页面（由用户自行下载，本项目不打包索尼版权文件） */
+    private fun openSonyLutPage() {
+        val url = "https://www.sony.co.uk/alphauniverse/lut-gallery"
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }.onFailure {
+            toast("没有可用浏览器，请手动访问 $url")
+        }
     }
 
     /** 只允许删除用户导入的 LUT；内置 LUT 不出现在删除列表里 */

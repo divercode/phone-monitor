@@ -27,7 +27,8 @@ python .tools\push_to_github.py --repo git@github.com:divercode/phone-monitor.gi
 
 | versionName | versionCode | 内容 |
 |---|---|---|
-| 0.5.0 | 5 | 内置 4 个 LUT（只读不可删）+ 用户 LUT 导入/删除（当前） |
+| 0.6.0 | 6 | 移除自研内置 LUT；内置通道保留给官方 LUT（默认不含版权文件），菜单增加索尼官网入口（当前） |
+| 0.5.0 | 5 | 内置 4 个 LUT（只读不可删）+ 用户 LUT 导入/删除 |
 | 0.4.0 | 4 | 桌面图标 + HUD/设置界面重做 |
 | 0.3.0 | 3 | 移除无 Log 的相机 UVC 输入；延迟优化（未压缩优先、低延迟模式） |
 | 0.2.0 | 2 | 相机 Type-C UVC（USB Streaming）支持、分辨率协商、CI 发布 APK |
