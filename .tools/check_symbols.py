@@ -101,7 +101,7 @@ RECEIVERS = {
     "settings": "MonitorSettings",
     "lutStore": "LutStore",
     "renderer": "MonitorRenderer",
-    "source": "UvcCameraSource",
+    "source": "FrameSource",
     "currentLut": "Lut3D",
     "lut": "Lut3D",
 }

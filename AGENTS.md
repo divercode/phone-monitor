@@ -18,10 +18,10 @@
   提供，其版权归 Sony，见 `app/src/main/assets/luts/SOURCE.txt`。
 - 不要引入新的 UI 框架/重型依赖；保持"Kotlin + 代码构建 UI + GLES2"的现有结构。
 
-## 当前状态速记（v0.7.1）
+## 当前状态速记（v0.8.0）
 
 - M1 完成：UVC 预览、LUT（内置 8 个索尼 Look LUT + 用户增删）、峰值/斑马/网格/直方图、
-  低延迟、帧率、图标与 HUD。
+  低延迟、帧率、图标与 HUD、**系统相机测试源（可选）**。
 - M4（Type-C PTP）只完成可行性验证，未写代码；协议常量在 `docs/PTP-FEASIBILITY.md`。
 - 未验证：真机采集、真机 USB 权限流程、实际延迟。
 

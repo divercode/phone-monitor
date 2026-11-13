@@ -94,6 +94,7 @@ class MonitorRenderer(
     private var uVideoPixels = -1
     private var uVideoOrigin = -1
     private var uTestPattern = -1
+    private var uQuarterTurns = -1
     private var aPosition = -1
     private var aTexCoord = -1
 
@@ -204,6 +205,10 @@ class MonitorRenderer(
     @Volatile
     var sourceConnected: Boolean = false
 
+    /** 预览旋转（90° 的倍数）：系统相机需要，UVC 恒为 0 */
+    @Volatile
+    var quarterTurns: Int = 0
+
     private fun hasRealSource(): Boolean = sourceConnected
 
     // ---------------------------------------------------------------- drawing
@@ -249,6 +254,7 @@ class MonitorRenderer(
         GLES20.glUniform2f(uVideoPixels, vp[2].toFloat(), vp[3].toFloat())
         GLES20.glUniform2f(uVideoOrigin, vp[0].toFloat(), vp[1].toFloat())
         GLES20.glUniform1f(uTestPattern, if (testPattern) 1f else 0f)
+        GLES20.glUniform1f(uQuarterTurns, quarterTurns.toFloat())
 
         val pos = quadPositions ?: return
         val tex = quadTexCoords ?: return
@@ -266,7 +272,11 @@ class MonitorRenderer(
 
     /** 按视频宽高比做 letterbox，返回视口矩形 [x, y, w, h] */
     private fun computeViewport(targetW: Int, targetH: Int): IntArray {
-        val videoAspect = previewWidth.toFloat() / previewHeight.toFloat()
+        val videoAspect = if (quarterTurns % 2 == 1) {
+            previewHeight.toFloat() / previewWidth.toFloat()
+        } else {
+            previewWidth.toFloat() / previewHeight.toFloat()
+        }
         val viewAspect = targetW.toFloat() / targetH.toFloat()
         val vpW: Int
         val vpH: Int
@@ -391,6 +401,7 @@ class MonitorRenderer(
         uVideoPixels = prog.uniform("uVideoPixels")
         uVideoOrigin = prog.uniform("uVideoOrigin")
         uTestPattern = prog.uniform("uTestPattern")
+        uQuarterTurns = prog.uniform("uQuarterTurns")
         aPosition = prog.attrib("aPosition")
         aTexCoord = prog.attrib("aTexCoord")
     }

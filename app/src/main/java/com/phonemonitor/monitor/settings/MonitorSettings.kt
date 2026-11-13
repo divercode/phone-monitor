@@ -61,6 +61,11 @@ class MonitorSettings(context: Context) {
         get() = prefs.getBoolean(KEY_LOW_LATENCY, false)
         set(value) = prefs.edit().putBoolean(KEY_LOW_LATENCY, value).apply()
 
+    /** 输入源：true = 手机系统相机（测试用），false = UVC 采集卡 */
+    var useSystemCamera: Boolean
+        get() = prefs.getBoolean(KEY_USE_SYSTEM_CAMERA, false)
+        set(value) = prefs.edit().putBoolean(KEY_USE_SYSTEM_CAMERA, value).apply()
+
     companion object {
         private const val PREFS_NAME = "monitor_settings"
         private const val KEY_LUT_ENABLED = "lut_enabled"
@@ -73,5 +78,6 @@ class MonitorSettings(context: Context) {
         private const val KEY_DESQUEEZE = "desqueeze"
         private const val KEY_HISTOGRAM = "histogram"
         private const val KEY_LOW_LATENCY = "low_latency"
+        private const val KEY_USE_SYSTEM_CAMERA = "use_system_camera"
     }
 }

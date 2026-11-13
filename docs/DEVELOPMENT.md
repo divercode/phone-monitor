@@ -49,8 +49,10 @@ app/src/main/java/com/phonemonitor/monitor/
 │   ├── Lut3D.kt           # 3D LUT → 2D 图集（1px 边距防串色）
 │   └── LutStore.kt        # 内置（assets/luts，只读不可删）/ 用户（filesDir/luts，可删）
 ├── uvc/
-│   ├── FrameSource.kt     # 输入源抽象（未来 PTP 实现也接这里）
+│   ├── FrameSource.kt     # 输入源抽象（UVC / 系统相机 / 未来 PTP 都接这里）
 │   └── UvcCameraSource.kt # CameraHelper 状态机；分辨率/格式协商（未压缩优先）
+├── camera/
+│   └── SystemCameraSource.kt # 可选的系统相机测试源（Camera2 → SurfaceTexture）
 ├── settings/MonitorSettings.kt
 └── ui/HistogramView.kt
 
@@ -119,6 +121,10 @@ python .tools/check_docs.py       # 文档相对链接与仓库路径
    （堆 buffer 会抛 `Buffer is not direct`）；`eglSwapInterval=0` 仅在低延迟模式。
 6. **生命周期**：`onPause` 先关相机再暂停 GL；GL 上下文重建会换 SurfaceTexture，
    `UvcCameraSource.attach` 会先 `removeSurface(旧)`；Activity 销毁后回调用 `destroyed` 拦截。
+7. **系统相机测试源**（`camera/SystemCameraSource.kt`）：Camera2 预览到同一 SurfaceTexture；
+   通过 `FrameSource.Callback.onOrientation` 把传感器方向（90°/270°=1/3 个 90°）传给渲染器，
+   着色器 `uQuarterTurns` 负责旋转、letterbox 宽高比同步交换。若真机画面方向相反，
+   改该文件里的旋转符号或 renderer 的 `quarterTurns` 即可。
 
 ## 7. 路线图：M4 PTP（Type-C + S-Log3）
 

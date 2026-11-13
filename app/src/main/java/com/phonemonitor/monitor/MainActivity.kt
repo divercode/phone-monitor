@@ -1,8 +1,11 @@
 package com.phonemonitor.monitor
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.SurfaceTexture
 import android.net.Uri
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -24,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import com.phonemonitor.monitor.BuildConfig
+import com.phonemonitor.monitor.camera.SystemCameraSource
 import com.phonemonitor.monitor.gl.MonitorRenderer
 import com.phonemonitor.monitor.lut.Lut3D
 import com.phonemonitor.monitor.lut.LutStore
@@ -43,7 +47,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var renderer: MonitorRenderer
     private lateinit var lutStore: LutStore
     private lateinit var settings: MonitorSettings
-    private lateinit var source: UvcCameraSource
+    private lateinit var source: FrameSource
+    private var latestSurfaceTexture: SurfaceTexture? = null
+    private var resumed = false
 
     private lateinit var topPanel: LinearLayout
     private lateinit var bottomBar: LinearLayout
@@ -95,12 +101,33 @@ class MainActivity : AppCompatActivity() {
                 glView.requestRender()
             }
         }
+
+        override fun onOrientation(quarterTurns: Int) {
+            runOnUiThread {
+                if (destroyed) return@runOnUiThread
+                renderer.quarterTurns = quarterTurns
+                glView.requestRender()
+            }
+        }
     }
 
     private val lutPicker =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             uri ?: return@registerForActivityResult
             importLut(uri)
+        }
+
+    /** 切换到系统相机前请求 CAMERA 权限 */
+    private val cameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                settings.useSystemCamera = true
+                rebuildSource()
+            } else {
+                settings.useSystemCamera = false
+                toast("未授予相机权限，已切回 UVC 采集卡")
+                rebuildSource()
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         lutStore = LutStore(this)
         currentLut = lutStore.selectedName?.let { lutStore.load(it) }
 
-        source = UvcCameraSource(this)
+        source = createSource()
         renderer = MonitorRenderer(
             settings = settings,
             lutProvider = { currentLut },
@@ -121,7 +148,10 @@ class MainActivity : AppCompatActivity() {
                     if (!destroyed && settings.histogram) histogramView.setHistogram(hist)
                 }
             },
-            onSurfaceTextureReady = { st -> source.attach(st) },
+            onSurfaceTextureReady = { st ->
+                latestSurfaceTexture = st
+                source.attach(st)
+            },
             onFps = { fps ->
                 runOnUiThread {
                     if (!destroyed) updateFps(fps)
@@ -149,6 +179,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         destroyed = false
+        resumed = true
         glView.onResume()
         if (!sourceStarted) {
             source.start(sourceCallback)
@@ -157,6 +188,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        resumed = false
         if (sourceStarted) {
             source.stop()
             sourceStarted = false
@@ -167,8 +199,35 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         destroyed = true
+        resumed = false
         source.release()
         super.onDestroy()
+    }
+
+    // ------------------------------------------------------------- 输入源
+
+    private fun createSource(): FrameSource =
+        if (settings.useSystemCamera) {
+            SystemCameraSource(applicationContext)
+        } else {
+            UvcCameraSource(this)
+        }
+
+    /** 输入源切换（UVC 采集卡 ↔ 系统相机）：停旧源、建新源、重新挂到同一个 SurfaceTexture */
+    private fun rebuildSource() {
+        if (sourceStarted) {
+            runCatching { source.stop() }
+            sourceStarted = false
+        }
+        runCatching { source.release() }
+        renderer.quarterTurns = 0
+        source = createSource()
+        latestSurfaceTexture?.let { source.attach(it) }
+        if (resumed && !destroyed) {
+            source.start(sourceCallback)
+            sourceStarted = true
+        }
+        glView.requestRender()
     }
 
     // ------------------------------------------------------------- UI 构建
@@ -584,6 +643,20 @@ class MainActivity : AppCompatActivity() {
             settings.lowLatency = it
             refreshPills()
             glView.requestRender()
+        }
+
+        addSwitch(container, R.string.switch_system_camera, settings.useSystemCamera) { checked ->
+            if (checked && ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.CAMERA,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                settings.useSystemCamera = true
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            } else {
+                settings.useSystemCamera = checked
+                rebuildSource()
+            }
         }
 
         container.addView(sectionTitle(R.string.section_params))

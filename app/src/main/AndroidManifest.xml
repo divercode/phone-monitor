@@ -7,6 +7,9 @@
         android:name="android.hardware.usb.host"
         android:required="true" />
 
+    <!-- 可选的"系统相机测试源"需要相机权限（UVC 采集不需要） -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <!-- UVCAndroid 的 manifest 会带入以下权限，本项目只做监看，用不到，合并时移除 -->
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"

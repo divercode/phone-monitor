@@ -48,6 +48,7 @@ object Shaders {
         uniform vec2 uVideoPixels;
         uniform vec2 uVideoOrigin;
         uniform float uTestPattern;
+        uniform float uQuarterTurns;
 
         // ---------- 工具函数 ----------
         float luma(vec3 c) {
@@ -131,6 +132,18 @@ object Shaders {
         // ---------- 主函数 ----------
         void main() {
             vec2 uv = vTexCoord;
+
+            // 系统相机预览需要按传感器方向旋转（UVC 采集卡为 0）
+            if (uQuarterTurns > 0.5) {
+                if (uQuarterTurns < 1.5) {
+                    uv = vec2(uv.y, 1.0 - uv.x);
+                } else if (uQuarterTurns < 2.5) {
+                    uv = vec2(1.0 - uv.x, 1.0 - uv.y);
+                } else {
+                    uv = vec2(1.0 - uv.y, uv.x);
+                }
+            }
+
             if (uDesqueeze > 1.001) {
                 uv.x = 0.5 + (uv.x - 0.5) / uDesqueeze;
             }
