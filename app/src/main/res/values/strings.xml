@@ -4,4 +4,26 @@
     <string name="status_waiting">等待 UVC 采集卡…（当前显示测试图案）</string>
     <string name="status_connected">UVC 已连接</string>
     <string name="status_error">采集卡打开失败</string>
+
+    <string name="btn_lut">LUT</string>
+    <string name="btn_settings">设置</string>
+    <string name="btn_hide">隐藏</string>
+    <string name="toggle_peak">峰值</string>
+    <string name="toggle_zebra">斑马</string>
+    <string name="toggle_grid">网格</string>
+    <string name="toggle_hist">直方图</string>
+    <string name="toggle_low_latency">低延迟</string>
+    <string name="settings_title">监看设置</string>
+    <string name="settings_done">完成</string>
+    <string name="section_tools">辅助工具</string>
+    <string name="section_params">参数调节</string>
+    <string name="switch_peak">峰值对焦</string>
+    <string name="switch_zebra">斑马纹</string>
+    <string name="switch_grid">构图网格</string>
+    <string name="switch_safe_area">安全框</string>
+    <string name="switch_histogram">显示直方图</string>
+    <string name="switch_low_latency">低延迟模式（关闭垂直同步，可能撕裂）</string>
+    <string name="slider_peak_threshold">峰值阈值（越小越灵敏）</string>
+    <string name="slider_zebra_threshold">斑马阈值 (IRE %)</string>
+    <string name="slider_desqueeze">变形宽银幕拉伸</string>
 </resources>

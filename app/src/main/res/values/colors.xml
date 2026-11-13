@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="hud_panel">#D9121218</color>
+    <color name="hud_stroke">#26FFFFFF</color>
+    <color name="accent">#FFFF5252</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="pill_inactive">#26FFFFFF</color>
+    <color name="pill_active_bg">#33FF5252</color>
+    <color name="chip_bg">#33FFFFFF</color>
+    <color name="status_ok">#FF4CAF50</color>
+    <color name="status_wait">#FFFFB300</color>
+    <color name="status_err">#FFFF5252</color>
+    <color name="ic_launcher_background">#FF0E1116</color>
+</resources>

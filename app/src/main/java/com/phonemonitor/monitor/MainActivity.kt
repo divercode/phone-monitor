@@ -1,15 +1,17 @@
 package com.phonemonitor.monitor
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.CheckBox
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -18,6 +20,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.ContextCompat
 import com.phonemonitor.monitor.gl.MonitorRenderer
 import com.phonemonitor.monitor.lut.Lut3D
 import com.phonemonitor.monitor.lut.LutStore
@@ -29,7 +33,7 @@ import java.util.Locale
 
 /**
  * 主界面：全屏 UVC 监看 + LUT + 峰值/斑马/网格 + 直方图。
- * UI 全部代码创建，避免布局 XML 与渲染层耦合。
+ * UI 全部代码构建，采用「悬浮 HUD + 快捷开关条」布局。
  */
 class MainActivity : AppCompatActivity() {
 
@@ -38,17 +42,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lutStore: LutStore
     private lateinit var settings: MonitorSettings
     private lateinit var source: UvcCameraSource
+
+    private lateinit var topPanel: LinearLayout
+    private lateinit var bottomBar: LinearLayout
+    private lateinit var statusDot: View
     private lateinit var statusText: TextView
     private var fpsText: TextView? = null
     private lateinit var histogramView: HistogramView
-    private lateinit var controls: LinearLayout
+
+    private lateinit var peakPill: TextView
+    private lateinit var zebraPill: TextView
+    private lateinit var gridPill: TextView
+    private lateinit var histPill: TextView
+    private lateinit var latencyPill: TextView
 
     @Volatile
     private var currentLut: Lut3D? = null
 
     private var sourceStarted = false
 
-    /** Activity 已销毁后，USB/GL 线程迟到的回调不应再碰视图 */
     @Volatile
     private var destroyed = false
 
@@ -58,6 +70,15 @@ class MainActivity : AppCompatActivity() {
                 if (destroyed) return@runOnUiThread
                 renderer.sourceConnected = status == FrameSource.Status.CONNECTED
                 statusText.text = message
+                statusDot.backgroundTintList = ColorStateList.valueOf(
+                    color(
+                        when (status) {
+                            FrameSource.Status.CONNECTED -> R.color.status_ok
+                            FrameSource.Status.WAITING -> R.color.status_wait
+                            FrameSource.Status.ERROR -> R.color.status_err
+                        },
+                    ),
+                )
                 if (status != FrameSource.Status.CONNECTED) {
                     fpsText?.text = "--"
                 }
@@ -112,12 +133,13 @@ class MainActivity : AppCompatActivity() {
             preserveEGLContextOnPause = true
             setRenderer(renderer)
             renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
-            setOnClickListener { toggleControls() }
+            setOnClickListener { toggleHud() }
         }
         renderer.requestRender = { glView.requestRender() }
 
         setContentView(buildRoot())
         statusText.text = getString(R.string.status_waiting)
+        refreshPills()
     }
 
     // ------------------------------------------------------------- lifecycle
@@ -133,7 +155,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        // 先停采集卡（会释放相机的预览 Surface），再暂停 GL 线程
         if (sourceStarted) {
             source.stop()
             sourceStarted = false
@@ -153,76 +174,215 @@ class MainActivity : AppCompatActivity() {
     private fun buildRoot(): FrameLayout {
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.BLACK)
+        root.addView(glView, matchParent())
 
-        root.addView(
-            glView,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            ),
-        )
-
-        controls = LinearLayout(this).apply {
+        // ---- 顶部 HUD：状态灯 + 状态文字 + 帧率 + 图标按钮
+        topPanel = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(Color.argb(150, 0, 0, 0))
-            setPadding(dp(12), dp(6), dp(12), dp(6))
+            background = drawable(R.drawable.bg_hud_panel)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
+        statusDot = View(this).apply {
+            background = drawable(R.drawable.status_dot)
+            backgroundTintList = ColorStateList.valueOf(color(R.color.status_wait))
+        }
+        topPanel.addView(statusDot, LinearLayout.LayoutParams(dp(9), dp(9)))
+
         statusText = TextView(this).apply {
-            setTextColor(Color.WHITE)
+            setTextColor(color(R.color.text_primary))
             textSize = 12f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
         }
-        controls.addView(
+        topPanel.addView(
             statusText,
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                .apply { marginStart = dp(8) },
         )
 
-        // 帧率显示（渲染线程每 30 帧回调一次）
-        val fpsView = TextView(this).apply {
+        val fps = TextView(this).apply {
             text = "--"
-            setTextColor(Color.argb(220, 200, 200, 200))
-            textSize = 12f
-            setPadding(dp(8), 0, dp(8), 0)
+            setTextColor(color(R.color.text_secondary))
+            textSize = 11f
+            background = drawable(R.drawable.bg_chip)
+            setPadding(dp(8), dp(3), dp(8), dp(3))
         }
-        fpsText = fpsView
-        controls.addView(fpsView)
+        fpsText = fps
+        topPanel.addView(
+            fps,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { marginStart = dp(8) },
+        )
 
-        controls.addView(actionButton("LUT") { showLutMenu() })
-        controls.addView(actionButton("设置") { showSettings() })
-        controls.addView(actionButton("隐藏") { toggleControls() })
+        topPanel.addView(
+            iconButton(R.drawable.ic_lut, getString(R.string.btn_lut)) { showLutMenu() },
+            wrapLp(marginStart = dp(8)),
+        )
+        topPanel.addView(
+            iconButton(R.drawable.ic_settings, getString(R.string.btn_settings)) { showSettings() },
+            wrapLp(marginStart = dp(6)),
+        )
+        topPanel.addView(
+            iconButton(R.drawable.ic_visibility, getString(R.string.btn_hide)) { toggleHud() },
+            wrapLp(marginStart = dp(6)),
+        )
 
         root.addView(
-            controls,
+            topPanel,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.TOP,
-            ),
+            ).apply {
+                gravity = Gravity.TOP
+                setMargins(dp(12), dp(12), dp(12), 0)
+            },
         )
 
-        histogramView = HistogramView(this).apply {
-            visibility = if (settings.histogram) View.VISIBLE else View.GONE
+        // ---- 底部快捷开关条
+        bottomBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            background = drawable(R.drawable.bg_hud_panel)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
         }
-        val histLp = FrameLayout.LayoutParams(dp(220), dp(110), Gravity.BOTTOM or Gravity.END)
-        histLp.setMargins(0, 0, dp(16), dp(16))
-        root.addView(histogramView, histLp)
+        peakPill = togglePill(R.drawable.ic_peak, R.string.toggle_peak, settings.peaking) {
+            settings.peaking = it
+            glView.requestRender()
+        }
+        zebraPill = togglePill(R.drawable.ic_zebra, R.string.toggle_zebra, settings.zebra) {
+            settings.zebra = it
+            glView.requestRender()
+        }
+        gridPill = togglePill(R.drawable.ic_grid, R.string.toggle_grid, settings.grid) {
+            settings.grid = it
+            glView.requestRender()
+        }
+        histPill = togglePill(R.drawable.ic_histogram, R.string.toggle_hist, settings.histogram) {
+            settings.histogram = it
+            refreshHistogramVisibility()
+            glView.requestRender()
+        }
+        latencyPill = togglePill(R.drawable.ic_bolt, R.string.toggle_low_latency, settings.lowLatency) {
+            settings.lowLatency = it
+            glView.requestRender()
+        }
+
+        root.addView(
+            bottomBar,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                setMargins(0, 0, 0, dp(16))
+            },
+        )
+
+        // ---- 直方图浮层
+        histogramView = HistogramView(this).apply {
+            background = drawable(R.drawable.bg_hud_panel)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+        }
+        root.addView(
+            histogramView,
+            FrameLayout.LayoutParams(dp(240), dp(110)).apply {
+                gravity = Gravity.BOTTOM or Gravity.END
+                setMargins(0, 0, dp(16), dp(96))
+            },
+        )
 
         return root
     }
 
-    private fun toggleControls() {
-        val visible = controls.visibility == View.VISIBLE
-        controls.visibility = if (visible) View.GONE else View.VISIBLE
-        histogramView.visibility =
-            if (visible || !settings.histogram) View.GONE else View.VISIBLE
+    private fun matchParent() = FrameLayout.LayoutParams(
+        FrameLayout.LayoutParams.MATCH_PARENT,
+        FrameLayout.LayoutParams.MATCH_PARENT,
+    )
+
+    private fun wrapLp(marginStart: Int = 0): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { this.marginStart = marginStart }
+
+    private fun iconButton(iconRes: Int, desc: String, onClick: () -> Unit): ImageView =
+        ImageView(this).apply {
+            setImageResource(iconRes)
+            contentDescription = desc
+            setColorFilter(color(R.color.text_primary))
+            background = drawable(R.drawable.bg_pill)
+            setPadding(dp(9), dp(9), dp(9), dp(9))
+            setOnClickListener { onClick() }
+        }
+
+    private fun pill(iconRes: Int, labelRes: Int): TextView = TextView(this).apply {
+        setText(labelRes)
+        textSize = 11f
+        setTextColor(color(R.color.text_secondary))
+        setCompoundDrawablesWithIntrinsicBounds(iconRes, 0, 0, 0)
+        compoundDrawablePadding = dp(5)
+        setCompoundDrawableTintList(ColorStateList.valueOf(color(R.color.text_secondary)))
+        setPadding(dp(10), dp(6), dp(10), dp(6))
+        background = drawable(R.drawable.bg_pill)
+        gravity = Gravity.CENTER
     }
 
-    private fun actionButton(text: String, onClick: () -> Unit) = TextView(this).apply {
-        setText(text)
-        setTextColor(Color.WHITE)
-        textSize = 14f
-        setPadding(dp(12), dp(6), dp(12), dp(6))
-        setOnClickListener { onClick() }
+    private fun togglePill(
+        iconRes: Int,
+        labelRes: Int,
+        initial: Boolean,
+        onToggle: (Boolean) -> Unit,
+    ): TextView {
+        val view = pill(iconRes, labelRes)
+        view.isSelected = initial
+        applyPillStyle(view)
+        view.setOnClickListener {
+            val next = !view.isSelected
+            view.isSelected = next
+            applyPillStyle(view)
+            onToggle(next)
+        }
+        bottomBar.addView(view, wrapLp(marginStart = dp(3), marginEnd = dp(3)))
+        return view
+    }
+
+    private fun applyPillStyle(view: TextView) {
+        val active = view.isSelected
+        view.background = drawable(
+            if (active) R.drawable.bg_pill_active else R.drawable.bg_pill,
+        )
+        val tint = color(if (active) R.color.accent else R.color.text_secondary)
+        view.setTextColor(tint)
+        view.setCompoundDrawableTintList(ColorStateList.valueOf(tint))
+    }
+
+    private fun refreshPills() {
+        peakPill.isSelected = settings.peaking
+        zebraPill.isSelected = settings.zebra
+        gridPill.isSelected = settings.grid
+        histPill.isSelected = settings.histogram
+        latencyPill.isSelected = settings.lowLatency
+        listOf(peakPill, zebraPill, gridPill, histPill, latencyPill).forEach { applyPillStyle(it) }
+        refreshHistogramVisibility()
+    }
+
+    private fun refreshHistogramVisibility() {
+        val show = settings.histogram && topPanel.visibility == View.VISIBLE
+        histogramView.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun toggleHud() {
+        val show = topPanel.visibility == View.GONE
+        topPanel.visibility = if (show) View.VISIBLE else View.GONE
+        bottomBar.visibility = if (show) View.VISIBLE else View.GONE
+        refreshHistogramVisibility()
+    }
+
+    private fun updateFps(fps: Float) {
+        fpsText?.text = String.format(Locale.US, "%.0f fps", fps)
     }
 
     // ------------------------------------------------------------- LUT
@@ -245,7 +405,7 @@ class MainActivity : AppCompatActivity() {
         items.addAll(names)
         val selected = lutStore.selectedName
         val checked = if (settings.lutEnabled && selected != null) {
-            names.indexOf(selected) + 1
+            (names.indexOf(selected) + 1).coerceAtLeast(0)
         } else {
             0
         }
@@ -284,7 +444,6 @@ class MainActivity : AppCompatActivity() {
                 val name = lutStore.import(uri, queryDisplayName(uri))
                 val lut = lutStore.load(name)
                 runOnUiThread {
-                    // 异步导入期间用户可能已退出，避免对已销毁的 Activity 弹窗
                     if (destroyed) return@runOnUiThread
                     if (lut == null) {
                         toast("解析失败：不是有效的 .cube 文件")
@@ -324,95 +483,170 @@ class MainActivity : AppCompatActivity() {
     private fun showSettings() {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(12), dp(20), dp(12))
+            setPadding(dp(20), 0, dp(20), dp(8))
         }
 
-        addCheck(container, "峰值对焦", settings.peaking) { checked ->
-            settings.peaking = checked
+        container.addView(sectionTitle(R.string.section_tools))
+
+        addSwitch(container, R.string.switch_peak, settings.peaking) {
+            settings.peaking = it
+            refreshPills()
             glView.requestRender()
         }
-        addSeek(container, "峰值阈值（越小越灵敏）", 100, (settings.peakingThreshold * 100).toInt()) {
+        addSwitch(container, R.string.switch_zebra, settings.zebra) {
+            settings.zebra = it
+            refreshPills()
+            glView.requestRender()
+        }
+        addSwitch(container, R.string.switch_grid, settings.grid) {
+            settings.grid = it
+            refreshPills()
+            glView.requestRender()
+        }
+        addSwitch(container, R.string.switch_safe_area, settings.safeArea) {
+            settings.safeArea = it
+            glView.requestRender()
+        }
+        addSwitch(container, R.string.switch_histogram, settings.histogram) {
+            settings.histogram = it
+            refreshPills()
+            glView.requestRender()
+        }
+        addSwitch(container, R.string.switch_low_latency, settings.lowLatency) {
+            settings.lowLatency = it
+            refreshPills()
+            glView.requestRender()
+        }
+
+        container.addView(sectionTitle(R.string.section_params))
+
+        addSlider(
+            container,
+            R.string.slider_peak_threshold,
+            100,
+            (settings.peakingThreshold * 100).toInt(),
+            { "$it" },
+        ) {
             settings.peakingThreshold = it / 100f
             glView.requestRender()
         }
 
-        addCheck(container, "斑马纹", settings.zebra) { checked ->
-            settings.zebra = checked
-            glView.requestRender()
-        }
-        // 阈值范围 50%~100% IRE
-        addSeek(container, "斑马阈值 (IRE %)", 100, (settings.zebraThreshold * 100).toInt()) {
+        addSlider(
+            container,
+            R.string.slider_zebra_threshold,
+            100,
+            (settings.zebraThreshold * 100).toInt(),
+            { "$it%" },
+        ) {
             settings.zebraThreshold = it.coerceIn(50, 100) / 100f
             glView.requestRender()
         }
 
-        addCheck(container, "构图网格", settings.grid) { checked ->
-            settings.grid = checked
-            glView.requestRender()
-        }
-        addCheck(container, "安全框", settings.safeArea) { checked ->
-            settings.safeArea = checked
-            glView.requestRender()
-        }
-
         val desqueezeOptions = floatArrayOf(1.0f, 1.33f, 2.0f)
+        val desqueezeLabels = arrayOf("×1.0", "×1.33", "×2.0")
         val currentIdx = desqueezeOptions.indexOfFirst { it == settings.desqueeze }
             .takeIf { it >= 0 } ?: 0
-        addSeek(container, "变形宽银幕拉伸 (×1.0 → ×2.0)", 2, currentIdx) {
+        addSlider(
+            container,
+            R.string.slider_desqueeze,
+            2,
+            currentIdx,
+            { desqueezeLabels[it.coerceIn(0, 2)] },
+        ) {
             settings.desqueeze = desqueezeOptions[it.coerceIn(0, 2)]
             glView.requestRender()
         }
 
-        addCheck(container, "显示直方图", settings.histogram) { checked ->
-            settings.histogram = checked
-            histogramView.visibility = if (checked) View.VISIBLE else View.GONE
-            glView.requestRender()
-        }
-
-        addCheck(container, "低延迟模式（关闭垂直同步，可能撕裂）", settings.lowLatency) { checked ->
-            settings.lowLatency = checked
-            glView.requestRender()
-        }
-
         val scroll = ScrollView(this).apply { addView(container) }
-        AlertDialog.Builder(this)
-            .setTitle("监看设置")
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.settings_title)
             .setView(scroll)
-            .setPositiveButton("完成", null)
-            .show()
+            .setPositiveButton(R.string.settings_done, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(drawable(R.drawable.bg_hud_panel))
+        }
+        dialog.show()
     }
 
-    private fun addCheck(
+    private fun sectionTitle(res: Int): TextView = TextView(this).apply {
+        setText(res)
+        setTextColor(color(R.color.accent))
+        textSize = 12f
+        setPadding(0, dp(14), 0, dp(4))
+    }
+
+    private fun addSwitch(
         parent: LinearLayout,
-        label: String,
+        labelRes: Int,
         initial: Boolean,
         onChange: (Boolean) -> Unit,
     ) {
-        val check = CheckBox(this).apply {
-            text = label
+        val switch = SwitchCompat(this).apply {
+            setText(labelRes)
+            setTextColor(color(R.color.text_primary))
+            textSize = 14f
             isChecked = initial
+            thumbTintList = ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(color(R.color.accent), 0xFF8A8A8A.toInt()),
+            )
+            trackTintList = ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                intArrayOf(0x66FF5252, 0x33FFFFFF),
+            )
             setOnCheckedChangeListener { _, checked -> onChange(checked) }
         }
-        parent.addView(check)
+        parent.addView(
+            switch,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(6); bottomMargin = dp(6) },
+        )
     }
 
-    private fun addSeek(
+    private fun addSlider(
         parent: LinearLayout,
-        label: String,
+        labelRes: Int,
         max: Int,
         initial: Int,
+        format: (Int) -> String,
         onChange: (Int) -> Unit,
     ) {
-        val text = TextView(this).apply {
-            this.text = label
-            textSize = 13f
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
+        val label = TextView(this).apply {
+            setText(labelRes)
+            textSize = 13f
+            setTextColor(color(R.color.text_secondary))
+        }
+        val value = TextView(this).apply {
+            text = format(initial.coerceIn(0, max))
+            textSize = 13f
+            setTextColor(color(R.color.text_primary))
+        }
+        row.addView(label, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(value)
+        parent.addView(
+            row,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(12) },
+        )
+
         val seek = SeekBar(this).apply {
             this.max = max
             progress = initial.coerceIn(0, max)
+            progressTintList = ColorStateList.valueOf(color(R.color.accent))
+            thumbTintList = ColorStateList.valueOf(color(R.color.accent))
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    if (fromUser) onChange(progress)
+                override fun onProgressChanged(seekBar: SeekBar?, p: Int, fromUser: Boolean) {
+                    value.text = format(p)
+                    if (fromUser) onChange(p)
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
@@ -420,7 +654,6 @@ class MainActivity : AppCompatActivity() {
                 override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
             })
         }
-        parent.addView(text)
         parent.addView(seek)
     }
 
@@ -441,9 +674,9 @@ class MainActivity : AppCompatActivity() {
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
 
-    private fun updateFps(fps: Float) {
-        fpsText?.text = String.format(Locale.US, "%.0f fps", fps)
-    }
+    private fun color(res: Int): Int = ContextCompat.getColor(this, res)
+
+    private fun drawable(res: Int) = ContextCompat.getDrawable(this, res)
 
     private fun toast(message: String) =
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
