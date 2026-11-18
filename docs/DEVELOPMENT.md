@@ -53,6 +53,9 @@ app/src/main/java/com/phonemonitor/monitor/
 │   └── UvcCameraSource.kt # CameraHelper 状态机；分辨率/格式协商（未压缩优先）
 ├── camera/
 │   └── SystemCameraSource.kt # 可选的系统相机测试源（Camera2 → SurfaceTexture）
+├── ptp/
+│   ├── PtpTransport.kt    # ISO 15740 PTP 容器/事务（USB bulk，命令+小数据）
+│   └── PtpProbe.kt        # Type-C PTP 协议诊断（OpenSession/SDIO 握手/0xD221）
 ├── settings/MonitorSettings.kt
 └── ui/HistogramView.kt
 
@@ -140,6 +143,10 @@ python .tools/check_docs.py       # 文档相对链接与仓库路径
 - 取景就绪：属性 `0xD221`
 - 取帧：`GET_OBJECT 0x1009`，句柄 `0xFFFFC002`；返回 8 字节头 + JPEG
 - 实现建议：新增 `ptp/PtpFrameSource.kt`；渲染层增加 2D 纹理输入路径；严格 CloseSession
+
+**当前进度**：`ptp/PtpProbe.kt` 已实现诊断版（发现设备→USB 权限→OpenSession→GetDeviceInfo
+→ SDIO_CONNECT 1/2/3→SDIO_GET_EXT_DEVICE_INFO→读 0xD221），可在 App「设置 → PTP 协议诊断」
+运行并复制结果；下一步把 `GET_OBJECT 0xFFFFC002` 的 JPEG 取流接到 GL 2D 纹理（M4.2）。
 
 风险：机型/固件差异、Android USB 权限、手机给相机供电；**会话未关闭会卡死相机需断电**。
 

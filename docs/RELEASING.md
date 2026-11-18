@@ -27,7 +27,8 @@ python .tools\push_to_github.py --repo git@github.com:divercode/phone-monitor.gi
 
 | versionName | versionCode | 内容 |
 |---|---|---|
-| 0.8.3 | 12 | 系统相机全画幅 4:3（防裁剪）+ 显示旋转后分辨率；Activity 改 sensorLandscape（自动横屏、不竖屏）（当前） |
+| 0.9.0 | 13 | 新增 Type-C PTP 协议诊断（OpenSession/GetDeviceInfo/SDIO 握手/0xD221），为 M4.2 取流铺路（当前） |
+| 0.8.3 | 12 | 系统相机全画幅 4:3（防裁剪）+ 显示旋转后分辨率；Activity 改 sensorLandscape（自动横屏、不竖屏） |
 | 0.8.2 | 11 | CI 固定 debug 签名密钥（缓存 keystore），修复"签名不同无法覆盖安装" |
 | 0.8.1 | 10 | 修复系统相机预览左右镜像（渲染层增加 uMirror 水平翻转） |
 | 0.8.0 | 9 | 新增「系统相机测试源」可选输入 + 预览旋转处理 |

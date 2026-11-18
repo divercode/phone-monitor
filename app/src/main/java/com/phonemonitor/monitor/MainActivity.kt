@@ -1,6 +1,8 @@
 package com.phonemonitor.monitor
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -31,6 +33,7 @@ import com.phonemonitor.monitor.camera.SystemCameraSource
 import com.phonemonitor.monitor.gl.MonitorRenderer
 import com.phonemonitor.monitor.lut.Lut3D
 import com.phonemonitor.monitor.lut.LutStore
+import com.phonemonitor.monitor.ptp.PtpProbe
 import com.phonemonitor.monitor.settings.MonitorSettings
 import com.phonemonitor.monitor.ui.HistogramView
 import com.phonemonitor.monitor.uvc.FrameSource
@@ -673,6 +676,10 @@ class MainActivity : AppCompatActivity() {
             if (settings.useSystemCamera) rebuildSource()
         }
 
+        // Type-C PTP 协议诊断（相机 USB 模式 = 电脑遥控/PC Remote）
+        container.addView(sectionTitle(R.string.section_ptp))
+        addActionRow(container, R.string.btn_ptp_probe) { runPtpProbe() }
+
         container.addView(sectionTitle(R.string.section_params))
 
         addSlider(
@@ -746,8 +753,7 @@ class MainActivity : AppCompatActivity() {
         labelRes: Int,
         initial: Boolean,
         onChange: (Boolean) -> Unit,
-    ) {
-        val switch = SwitchCompat(this).apply {
+    ) {        val switch = SwitchCompat(this).apply {
             setText(labelRes)
             setTextColor(color(R.color.text_primary))
             textSize = 14f
@@ -820,6 +826,62 @@ class MainActivity : AppCompatActivity() {
             })
         }
         parent.addView(seek)
+    }
+
+    private fun addActionRow(
+        parent: LinearLayout,
+        labelRes: Int,
+        onClick: () -> Unit,
+    ) {
+        val row = TextView(this).apply {
+            setText(labelRes)
+            textSize = 14f
+            setTextColor(color(R.color.accent))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = drawable(R.drawable.bg_pill)
+            setOnClickListener { onClick() }
+        }
+        parent.addView(
+            row,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(10) },
+        )
+    }
+
+    // ------------------------------------------------------------- PTP 诊断
+
+    private fun runPtpProbe() {
+        val progress = AlertDialog.Builder(this)
+            .setTitle(R.string.btn_ptp_probe)
+            .setMessage("正在与相机通讯…\n请保持 Type-C 连接；若弹出 USB 权限请允许。")
+            .setCancelable(false)
+            .create()
+        progress.show()
+        Thread {
+            val result = runCatching { PtpProbe.run(applicationContext) }
+                .getOrElse { e -> PtpProbe.Result(listOf("异常：${e.message}"), false) }
+            runOnUiThread {
+                if (destroyed) return@runOnUiThread
+                progress.dismiss()
+                showProbeResult(result)
+            }
+        }.start()
+    }
+
+    private fun showProbeResult(result: PtpProbe.Result) {
+        val text = result.lines.joinToString("\n")
+        AlertDialog.Builder(this)
+            .setTitle(if (result.ok) "PTP 诊断：协议可用" else "PTP 诊断：未通过")
+            .setMessage(text)
+            .setPositiveButton("复制日志") { _, _ ->
+                val manager = getSystemService(ClipboardManager::class.java)
+                manager?.setPrimaryClip(ClipData.newPlainText("PTP 诊断", text))
+                toast("日志已复制")
+            }
+            .setNegativeButton("关闭", null)
+            .show()
     }
 
     // ------------------------------------------------------------- 杂项
